@@ -20,7 +20,7 @@ import Prim "mo:⛔";
 
 module {
 
-  type StableBuffer<X> = {
+  public type StableBuffer<X> = {
     initCapacity: Nat;
     var count: Nat;
     var elems: [var X];
@@ -28,8 +28,15 @@ module {
 
   /// Initializes a buffer of given initial capacity. Note that this capacity is not realized until an element
   /// is added to the buffer. 
-  public func init<X>(initCapacity: Nat): StableBuffer<X> = {
+  public func initPresized<X>(initCapacity: Nat): StableBuffer<X> = {
     initCapacity = initCapacity;
+    var count = 0;
+    var elems = [var];
+  };
+
+  /// Initializes a buffer of initial capacity 0. When the first element is added the size will grow to one
+  public func init<X>(): StableBuffer<X> = {
+    initCapacity = 0;
     var count = 0;
     var elems = [var];
   };
@@ -88,7 +95,7 @@ module {
 
   /// Returns a copy of this buffer.
   public func clone<X>(buffer: StableBuffer<X>) : StableBuffer<X> {
-    let c = init<X>(buffer.elems.size());
+    let c = initPresized<X>(buffer.elems.size());
     var i = 0;
     label l loop {
       if (i >= buffer.count) break l;
@@ -112,7 +119,7 @@ module {
 
   /// Creates a Buffer from an Array
   public func fromArray<X>(xs: [X]): StableBuffer<X> {
-    let ys: StableBuffer<X> = init(xs.size());
+    let ys: StableBuffer<X> = initPresized(xs.size());
     for (x in xs.vals()) {
       add(ys, x);
     };

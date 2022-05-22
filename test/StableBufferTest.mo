@@ -2,9 +2,10 @@ import Prim "mo:⛔";
 import B "../src/StableBuffer";
 import I "mo:base/Iter";
 import O "mo:base/Option";
+import Array "mo:base/Array";
 
 // test repeated growing
-let a = B.init<Nat>(3);
+let a = B.initPresized<Nat>(3);
 for (i in I.range(0, 123)) {
   B.add(a, i);
 };
@@ -14,19 +15,19 @@ for (i in I.range(0, 123)) {
 
 
 // test repeated appending
-let b = B.init<Nat>(3);
+let b = B.initPresized<Nat>(3);
 for (i in I.range(0, 123)) {
   B.append(b, a);
 };
 
-Prim.debugPrint(debug_show(B.toArray(a)));
-Prim.debugPrint(debug_show(B.toArray(b)));
-
 // test repeated removing
 for (i in I.revRange(123, 0)) {
-    assert(O.unwrap(B.removeLast(a)) == i);
+  switch(B.removeLast(a)) {
+    case null { assert false };
+    case (?el) { assert el == i };
+  }
 };
-O.assertNull(B.removeLast(a));
+assert O.isNull(B.removeLast(a));
 
 func natArrayIter(elems:[Nat]) : I.Iter<Nat> = object {
   var pos = 0;
@@ -67,10 +68,9 @@ func natIterEq(a:I.Iter<Nat>, b:I.Iter<Nat>) : Bool {
 do {
   let bigLen = 100;
   let len = 3;
-  let c = B.init<Nat>(bigLen);
+  let c = B.initPresized<Nat>(bigLen);
   assert (len < bigLen);
   for (i in I.range(0, len - 1)) {
-    Prim.debugPrint(debug_show(i));
     B.add(c, i);
   };
   assert (B.size<Nat>(c) == len);
@@ -82,7 +82,7 @@ do {
 
 // regression test: initially-empty buffers grow, element-by-element
 do {
-  let c = B.init<Nat>(0);
+  let c = B.initPresized<Nat>(0);
   assert (B.toArray(c).size() == 0);
   assert (B.toVarArray(c).size() == 0);
   B.add(c, 0);
@@ -100,3 +100,18 @@ do {
   assert (natIterEq(B.vals<Nat>(d), arr.vals())); 
   assert (B.size<Nat>(d) == arr.size()); 
 };
+
+// test init
+do {
+  let e = B.init<Nat>();
+  assert (B.toArray(e).size() == 0);
+  assert (B.toVarArray(e).size() == 0);
+  B.add(e, 0);
+  assert (B.toArray(e).size() == 1);
+  assert (B.toVarArray(e).size() == 1);
+  B.add(e, 1);
+  B.add(e, 2);
+  assert (B.toArray(e).size() == 3);
+  assert (B.toVarArray(e).size() == 3);
+  assert (e.elems.size() == 4);
+}
