@@ -17,13 +17,14 @@
 /// determined at construction and cannot be changed).
 
 import Prim "mo:⛔";
+import Prelude "mo:base/Prelude";
 
 module {
 
   public type StableBuffer<X> = {
     initCapacity: Nat;
     var count: Nat;
-    var elems: [var X];
+    var elems: [var ?X];
   };
 
   /// Initializes a buffer of given initial capacity. Note that this capacity is not realized until an element
@@ -50,16 +51,20 @@ module {
         } else {
           2 * buffer.elems.size()
         };
-      let elems2 = Prim.Array_init<X>(size, elem);
+
+      let elems2 = Prim.Array_init<?X>(size, null);
+
       var i = 0;
       label l loop {
         if (i >= buffer.count) break l;
         elems2[i] := buffer.elems[i];
         i += 1;
       };
+
       buffer.elems := elems2;
     };
-    buffer.elems[buffer.count] := elem;
+
+    buffer.elems[buffer.count] := ?elem;
     buffer.count += 1;
   };
 
@@ -70,7 +75,7 @@ module {
       null
     } else {
       buffer.count -= 1;
-      ?buffer.elems[buffer.count]
+      buffer.elems[buffer.count]
     };
   };
 
@@ -96,12 +101,15 @@ module {
   /// Returns a copy of this buffer.
   public func clone<X>(buffer: StableBuffer<X>) : StableBuffer<X> {
     let c = initPresized<X>(buffer.elems.size());
-    var i = 0;
+    var i = vals(buffer);
+
     label l loop {
-      if (i >= buffer.count) break l;
-      add(c, buffer.elems[i]);
-      i += 1;
+      switch (i.next()) {
+        case null break l;
+        case (?x) { add(c, x) };
+      };
     };
+
     c
   };
 
@@ -110,7 +118,7 @@ module {
     var pos = 0;
     public func next() : ?X {
       if (pos == buffer.count) { null } else {
-        let elem = ?buffer.elems[pos];
+        let elem = buffer.elems[pos];
         pos += 1;
         elem
       }
@@ -127,24 +135,34 @@ module {
     ys
   };
 
+  func unwrap<X>(optElem : ?X ) : X{
+    switch(optElem){
+      case (?elem) elem;
+      case (null) Prelude.unreachable();
+    }
+  };
+
   /// Creates a new array containing this buffer's elements.
   public func toArray<X>(buffer: StableBuffer<X>) : [X] =
     // immutable clone of array
     Prim.Array_tabulate<X>(
       buffer.count,
-      func(x : Nat) : X { buffer.elems[x] }
+      func(x : Nat) : X { 
+        unwrap(buffer.elems[x])
+      }
     );
 
   /// Creates a mutable array containing this buffer's elements.
   public func toVarArray<X>(buffer: StableBuffer<X>) : [var X] {
     if (buffer.count == 0) { [var] } else {
-      let a = Prim.Array_init<X>(buffer.count, buffer.elems[0]);
+      let a = Prim.Array_init<X>(buffer.count, unwrap(buffer.elems[0]));
       var i = 0;
       label l loop {
         if (i >= buffer.count) break l;
-        a[i] := buffer.elems[i];
+        a[i] := unwrap(buffer.elems[i]);
         i += 1;
       };
+
       a
     }
   };
@@ -152,13 +170,13 @@ module {
   /// Gets the `i`-th element of this buffer. Traps if  `i >= count`. Indexing is zero-based.
   public func get<X>(buffer: StableBuffer<X>, i : Nat) : X {
     assert(i < buffer.count);
-    buffer.elems[i]
+    unwrap(buffer.elems[i])
   };
 
   /// Gets the `i`-th element of the buffer as an option. Returns `null` when `i >= count`. Indexing is zero-based.
   public func getOpt<X>(buffer: StableBuffer<X>, i : Nat) : ?X {
     if (i < buffer.count) {
-      ?buffer.elems[i]
+      buffer.elems[i]
     }
     else {
       null
@@ -168,6 +186,6 @@ module {
   /// Overwrites the current value of the `i`-entry of this buffer with `elem`. Traps if the
   /// index is out of bounds. Indexing is zero-based.
   public func put<X>(buffer: StableBuffer<X>, i : Nat, elem : X) {
-    buffer.elems[i] := elem;
+    buffer.elems[i] := ?elem;
   };
 }
