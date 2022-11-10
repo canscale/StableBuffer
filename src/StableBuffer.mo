@@ -1,7 +1,7 @@
 /// Generic, extensible buffers
 ///
 /// `StableBuffer<X>` is adapted directly from https://github.com/dfinity/motoko-base/blob/master/src/Buffer.mo,
-/// ripping all functions and instance variables out of the `Buffer` class in order to make a stable, persistent 
+/// ripping all functions and instance variables out of the `Buffer` class in order to make a stable, persistent
 /// buffer.
 ///
 /// Generic, mutable sequences that grow to accommodate arbitrary numbers of elements.
@@ -17,40 +17,38 @@
 /// determined at construction and cannot be changed).
 
 import Prim "mo:⛔";
-import Prelude "mo:base/Prelude";
 
 module {
 
   public type StableBuffer<X> = {
-    initCapacity: Nat;
-    var count: Nat;
-    var elems: [var ?X];
+    initCapacity : Nat;
+    var count : Nat;
+    var elems : [var ?X];
   };
 
   /// Initializes a buffer of given initial capacity. Note that this capacity is not realized until an element
-  /// is added to the buffer. 
-  public func initPresized<X>(initCapacity: Nat): StableBuffer<X> = {
+  /// is added to the buffer.
+  public func initPresized<X>(initCapacity : Nat) : StableBuffer<X> = {
     initCapacity = initCapacity;
     var count = 0;
     var elems = [var];
   };
 
   /// Initializes a buffer of initial capacity 0. When the first element is added the size will grow to one
-  public func init<X>(): StableBuffer<X> = {
+  public func init<X>() : StableBuffer<X> = {
     initCapacity = 0;
     var count = 0;
     var elems = [var];
   };
 
   /// Adds a single element to the buffer.
-  public func add<X>(buffer: StableBuffer<X>, elem: X): () {
+  public func add<X>(buffer : StableBuffer<X>, elem : X) : () {
     if (buffer.count == buffer.elems.size()) {
-      let size =
-        if (buffer.count == 0) {
-          if (buffer.initCapacity > 0) { buffer.initCapacity } else { 1 }
-        } else {
-          2 * buffer.elems.size()
-        };
+      let size = if (buffer.count == 0) {
+        if (buffer.initCapacity > 0) { buffer.initCapacity } else { 1 };
+      } else {
+        2 * buffer.elems.size();
+      };
 
       let elems2 = Prim.Array_init<?X>(size, null);
 
@@ -70,17 +68,17 @@ module {
 
   /// Removes the item that was inserted last and returns it or `null` if no
   /// elements had been added to the buffer.
-  public func removeLast<X>(buffer: StableBuffer<X>) : ?X {
+  public func removeLast<X>(buffer : StableBuffer<X>) : ?X {
     if (buffer.count == 0) {
-      null
+      null;
     } else {
       buffer.count -= 1;
-      buffer.elems[buffer.count]
+      buffer.elems[buffer.count];
     };
   };
 
   /// Adds all elements in buffer `b` to buffer `a`.
-  public func append<X>(a: StableBuffer<X>, b : StableBuffer<X>): () {
+  public func append<X>(a : StableBuffer<X>, b : StableBuffer<X>) : () {
     let i = vals(b);
     loop {
       switch (i.next()) {
@@ -91,15 +89,15 @@ module {
   };
 
   /// Returns the count of elements in the buffer
-  public func size<X>(buffer: StableBuffer<X>) : Nat { buffer.count };
+  public func size<X>(buffer : StableBuffer<X>) : Nat { buffer.count };
 
   /// Resets the buffer.
-  public func clear<X>(buffer: StableBuffer<X>): () {
+  public func clear<X>(buffer : StableBuffer<X>) : () {
     buffer.count := 0;
   };
 
   /// Returns a copy of this buffer.
-  public func clone<X>(buffer: StableBuffer<X>) : StableBuffer<X> {
+  public func clone<X>(buffer : StableBuffer<X>) : StableBuffer<X> {
     let c = initPresized<X>(buffer.elems.size());
     var i = vals(buffer);
 
@@ -110,82 +108,76 @@ module {
       };
     };
 
-    c
+    c;
   };
 
   /// Returns an `Iter` over the elements of this buffer.
-  public func vals<X>(buffer: StableBuffer<X>) : { next : () -> ?X } = object {
+  public func vals<X>(buffer : StableBuffer<X>) : { next : () -> ?X } = object {
     var pos = 0;
     public func next() : ?X {
       if (pos == buffer.count) { null } else {
         let elem = buffer.elems[pos];
         pos += 1;
-        elem
-      }
-    }
+        elem;
+      };
+    };
   };
 
   /// Creates a Buffer from an Array
-  public func fromArray<X>(xs: [X]): StableBuffer<X> {
-    let ys: StableBuffer<X> = initPresized(xs.size());
+  public func fromArray<X>(xs : [X]) : StableBuffer<X> {
+    let ys : StableBuffer<X> = initPresized(xs.size());
     for (x in xs.vals()) {
       add(ys, x);
     };
 
-    ys
-  };
-
-  func unwrap<X>(optElem : ?X ) : X{
-    switch(optElem){
-      case (?elem) elem;
-      case (null) Prelude.unreachable();
-    }
+    ys;
   };
 
   /// Creates a new array containing this buffer's elements.
-  public func toArray<X>(buffer: StableBuffer<X>) : [X] =
-    // immutable clone of array
-    Prim.Array_tabulate<X>(
-      buffer.count,
-      func(x : Nat) : X { 
-        unwrap(buffer.elems[x])
-      }
-    );
+  public func toArray<X>(buffer : StableBuffer<X>) : [X] =
+  // immutable clone of array
+  Prim.Array_tabulate<X>(
+    buffer.count,
+    func(x : Nat) : X {
+      get(buffer, x);
+    },
+  );
 
   /// Creates a mutable array containing this buffer's elements.
-  public func toVarArray<X>(buffer: StableBuffer<X>) : [var X] {
+  public func toVarArray<X>(buffer : StableBuffer<X>) : [var X] {
     if (buffer.count == 0) { [var] } else {
-      let a = Prim.Array_init<X>(buffer.count, unwrap(buffer.elems[0]));
+      let a = Prim.Array_init<X>(buffer.count, get(buffer, 0));
       var i = 0;
       label l loop {
         if (i >= buffer.count) break l;
-        a[i] := unwrap(buffer.elems[i]);
+        a[i] := get(buffer, i);
         i += 1;
       };
 
-      a
-    }
+      a;
+    };
   };
 
   /// Gets the `i`-th element of this buffer. Traps if  `i >= count`. Indexing is zero-based.
-  public func get<X>(buffer: StableBuffer<X>, i : Nat) : X {
-    assert(i < buffer.count);
-    unwrap(buffer.elems[i])
+  public func get<X>(buffer : StableBuffer<X>, i : Nat) : X {
+    switch (buffer.elems[i]) {
+      case (?elem) elem;
+      case (null) Prim.trap("Buffer index out of bounds in get");
+    };
   };
 
   /// Gets the `i`-th element of the buffer as an option. Returns `null` when `i >= count`. Indexing is zero-based.
-  public func getOpt<X>(buffer: StableBuffer<X>, i : Nat) : ?X {
+  public func getOpt<X>(buffer : StableBuffer<X>, i : Nat) : ?X {
     if (i < buffer.count) {
-      buffer.elems[i]
-    }
-    else {
-      null
-    }
+      buffer.elems[i];
+    } else {
+      null;
+    };
   };
 
   /// Overwrites the current value of the `i`-entry of this buffer with `elem`. Traps if the
   /// index is out of bounds. Indexing is zero-based.
-  public func put<X>(buffer: StableBuffer<X>, i : Nat, elem : X) {
+  public func put<X>(buffer : StableBuffer<X>, i : Nat, elem : X) {
     buffer.elems[i] := ?elem;
   };
-}
+};
