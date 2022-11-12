@@ -1,0 +1,15 @@
+
+{
+  "canisters": {
+    "example": {
+      "type": "motoko",
+      "main": "src/main.mo"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  }
+}
