@@ -22,11 +22,11 @@ import B "mo:stablebuffer/StableBuffer";
 ...
 
 // initialize and add to a Buffer
-let b = B.init<Nat>();
+stable let b = B.init<Nat>();
 B.add(b, 5);
 
 // initialize from an existing Array
-let b = B.fromArray<Nat>([1,2,3,4,5]);
+stable let b = B.fromArray<Nat>([1,2,3,4,5]);
 
 // for more, check out the API Documentation -> https://canscale.github.io/StableBuffer
 ```
