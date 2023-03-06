@@ -127,6 +127,16 @@ module {
     ys
   };
 
+  /// Creates a Buffer from the elements of a mutable Array.
+  public func fromVarArray<X>(xs: [var X]): StableBuffer<X> {
+    let ys: StableBuffer<X> = initPresized(xs.size());
+    for (x in xs.vals()) {
+      add(ys, x);
+    };
+
+    ys
+  };
+
   /// Creates a new array containing this buffer's elements.
   public func toArray<X>(buffer: StableBuffer<X>) : [X] =
     // immutable clone of array
@@ -170,4 +180,23 @@ module {
   public func put<X>(buffer: StableBuffer<X>, i : Nat, elem : X) {
     buffer.elems[i] := elem;
   };
+
+  /// Reverses the order of elements in `buffer`.
+  public func reverse<X>(buffer: StableBuffer<X>) {
+    let sz = size(buffer);
+    if (sz == 0) {
+      return
+    };
+
+    var i = 0;
+    var j = sz - 1 : Nat;
+    var temp = get(buffer, 0);
+    while (i < sz / 2) {
+      temp := get(buffer, j);
+      put(buffer, j, get(buffer, i));
+      put(buffer, i, temp);
+      i += 1;
+      j -= 1
+    }
+  }
 }

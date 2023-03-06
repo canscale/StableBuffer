@@ -101,6 +101,14 @@ do {
   assert (B.size<Nat>(d) == arr.size()); 
 };
 
+// test fromVarArray
+do {
+  let arr = [var 1,2,3,4,5];
+  let d = B.fromVarArray<Nat>(arr);
+  assert (natIterEq(B.vals<Nat>(d), arr.vals())); 
+  assert (B.size<Nat>(d) == arr.size()); 
+};
+
 // test init
 do {
   let e = B.init<Nat>();
@@ -114,4 +122,16 @@ do {
   assert (B.toArray(e).size() == 3);
   assert (B.toVarArray(e).size() == 3);
   assert (e.elems.size() == 4);
-}
+};
+
+// test reverse
+do {
+  let e = B.init<Nat>();
+  B.add(e, 0);
+  B.add(e, 1);
+  B.add(e, 2);
+  B.add(e, 3);
+  B.reverse(e);
+  let expected = [3, 2, 1, 0];
+  assert (natIterEq(B.vals<Nat>(e), expected.vals())); 
+};
