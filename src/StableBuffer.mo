@@ -17,6 +17,7 @@
 /// determined at construction and cannot be changed).
 
 import Prim "mo:⛔";
+import Nat "mo:base/Nat";
 
 module {
 
@@ -71,6 +72,25 @@ module {
     } else {
       buffer.count -= 1;
       ?buffer.elems[buffer.count]
+    };
+  };
+
+  /// Removes the item at `index` from the buffer and returns it or `null` if 
+  /// `index >= size`.
+  /// All elements with index > `index` are shifted one position to the left.
+  /// Note: `index` is zero-based.
+  public func remove<X>(buffer: StableBuffer<X>, index : Nat) : ?X {
+    if (index >= buffer.count) {
+      null
+    } else {
+      let element = ?buffer.elems[index];
+      var idx = index;
+      while (idx < (buffer.count - 1 : Nat)) {
+        buffer.elems[idx] := buffer.elems[idx + 1];
+        idx += 1;
+      };
+      buffer.count -= 1;
+      element
     };
   };
 

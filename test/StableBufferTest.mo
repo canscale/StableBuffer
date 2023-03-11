@@ -93,6 +93,18 @@ do {
   assert (B.toVarArray(c).size() == 2);
 };
 
+// test remove
+do {
+  let arr = [1,2,3,4,5,6,7,8,9,10];
+  let d = B.fromArray<Nat>(arr);
+  assert(B.remove(d, 1) == ?2);
+  assert(B.remove(d, 4) == ?6);
+  assert(B.remove(d, 0) == ?1);
+  assert(B.remove(d, 6) == ?10);
+  let expected = [3, 4, 5, 7, 8, 9];
+  assert (natIterEq(B.vals<Nat>(d), expected.vals())); 
+};
+
 // test fromArray
 do {
   let arr = [1,2,3,4,5];
