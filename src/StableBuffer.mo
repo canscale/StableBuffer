@@ -21,6 +21,9 @@ import Nat "mo:base/Nat";
 
 module {
 
+  private let DECREASE_THRESHOLD = 4; // Don't decrease capacity too early to avoid thrashing
+  private let DECREASE_FACTOR = 2;
+
   public type StableBuffer<X> = {
     initCapacity: Nat;
     var count: Nat;
@@ -75,23 +78,48 @@ module {
     };
   };
 
-  /// Removes the item at `index` from the buffer and returns it or `null` if 
-  /// `index >= size`.
+  /// Removes and returns the element at `index` from the buffer.
   /// All elements with index > `index` are shifted one position to the left.
+  /// This may cause a downsizing of the array.
+  ///
+  /// Traps if index >= size.
   /// Note: `index` is zero-based.
-  public func remove<X>(buffer: StableBuffer<X>, index : Nat) : ?X {
+  public func remove<X>(buffer: StableBuffer<X>, index : Nat) : X {
     if (index >= buffer.count) {
-      null
-    } else {
-      let element = ?buffer.elems[index];
-      var idx = index;
-      while (idx < (buffer.count - 1 : Nat)) {
-        buffer.elems[idx] := buffer.elems[idx + 1];
-        idx += 1;
-      };
-      buffer.count -= 1;
-      element
+      Prim.trap "Buffer index out of bounds in remove"
     };
+
+    let element = buffer.elems[index];
+    let currentCapacity = buffer.elems.size();
+
+    // copy elements to new array and shift over in one pass
+    if ((buffer.count - 1) : Nat < currentCapacity / DECREASE_THRESHOLD) {
+      let elements2 = Prim.Array_init<X>(buffer.elems.size() / DECREASE_FACTOR, element);
+
+      var i = 0;
+      var j = 0;
+      label l while (i < buffer.count) {
+        if (i == index) {
+          i += 1;
+          continue l
+        };
+
+        elements2[j] := buffer.elems[i];
+        i += 1;
+        j += 1
+      };
+      buffer.elems := elements2
+    } else {
+      // just shift over elements
+      var i = index;
+      while (i < (buffer.count - 1 : Nat)) {
+        buffer.elems[i] := buffer.elems[i + 1];
+        i += 1
+      };
+    };
+
+    buffer.count -= 1;
+    element
   };
 
   /// Adds all elements in buffer `b` to buffer `a`.

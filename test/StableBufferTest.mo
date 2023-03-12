@@ -97,12 +97,21 @@ do {
 do {
   let arr = [1,2,3,4,5,6,7,8,9,10];
   let d = B.fromArray<Nat>(arr);
-  assert(B.remove(d, 1) == ?2);
-  assert(B.remove(d, 4) == ?6);
-  assert(B.remove(d, 0) == ?1);
-  assert(B.remove(d, 6) == ?10);
+  assert(B.remove(d, 1) == 2);
+  assert(B.remove(d, 4) == 6);
+  assert(B.remove(d, 0) == 1);
+  assert(B.remove(d, 6) == 10);
   let expected = [3, 4, 5, 7, 8, 9];
-  assert (natIterEq(B.vals<Nat>(d), expected.vals())); 
+  assert (natIterEq(B.vals<Nat>(d), expected.vals()));
+  
+  // remove 4 more elements to trigger downsizing.
+  assert(B.remove(d, 1) == 4);
+  assert(B.remove(d, 0) == 3);
+  assert(B.remove(d, 2) == 8);
+  assert(B.remove(d, 1) == 7);
+
+  let expectedAfterDownsize = [5, 9];
+  assert (natIterEq(B.vals<Nat>(d), expectedAfterDownsize.vals()));
 };
 
 // test fromArray
