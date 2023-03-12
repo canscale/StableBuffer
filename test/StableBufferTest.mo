@@ -3,6 +3,12 @@ import B "../src/StableBuffer";
 import I "mo:base/Iter";
 import O "mo:base/Option";
 import Array "mo:base/Array";
+import Iter "mo:base/Iter";
+import Suite "mo:matchers/Suite";
+import M "mo:matchers/Matchers";
+import T "mo:matchers/Testable";
+
+let { run; test; suite } = Suite;
 
 // test repeated growing
 let a = B.initPresized<Nat>(3);
@@ -113,5 +119,292 @@ do {
   B.add(e, 2);
   assert (B.toArray(e).size() == 3);
   assert (B.toVarArray(e).size() == 3);
-  assert (e.elems.size() == 4);
-}
+  assert (e.elems.size() == 3);
+};
+
+// test capacity
+do {
+  let buffer = B.initPresized<Nat>(2); // underlying array has capacity 2
+  B.add(buffer, 10);
+  assert(B.capacity(buffer) == 2);
+  B.add(buffer, 11);
+  B.add(buffer, 12); // causes capacity to increase by factor of 1.5
+  assert(B.capacity(buffer) == 3);
+};
+
+// test insert
+do {
+  let buffer = B.initPresized<Nat>(2);
+  B.add(buffer, 10);
+  B.add(buffer, 11);
+  B.insert(buffer, 1, 9);
+  assert(B.capacity(buffer) == 3); // ceil (2 * 1.5)
+  B.insert(buffer, 1, 15);
+  assert(B.capacity(buffer) == 5); // ceil(3 * 1.5)
+  
+  let expected = [10, 15, 9, 11];
+  assert (natIterEq(B.vals<Nat>(buffer), expected.vals())); 
+};
+
+// test insertBuffer
+do {
+  let buffer = B.initPresized<Nat>(15);
+  for (i in Iter.range(0, 5)) {
+    B.add(buffer, i)
+  };
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 3, buffer2);
+
+  run(
+    suite(
+      "insertBuffer",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(12))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(15))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 10, 11, 12, 13, 14, 15, 3, 4, 5]))
+        )
+      ]
+    )
+  );
+};
+
+// test insertBuffer at start
+do {
+  let buffer = B.initPresized<Nat>(15);
+  for (i in Iter.range(0, 5)) {
+    B.add(buffer, i)
+  };
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 0, buffer2);
+
+  run(
+    suite(
+      "insertBuffer at start",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(12))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(15))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5]))
+        )
+      ]
+    )
+  );
+};
+
+// test insertBuffer at end
+do {
+  let buffer = B.initPresized<Nat>(15);
+  for (i in Iter.range(0, 5)) {
+    B.add(buffer, i)
+  };
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 6, buffer2);
+
+  run(
+    suite(
+      "insertBuffer at end",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(12))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(15))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15]))
+        )
+      ]
+    )
+  );
+};
+
+// test insertBuffer with capacity change
+do {
+  let buffer = B.initPresized<Nat>(8);
+  for (i in Iter.range(0, 5)) {
+    B.add(buffer, i)
+  };
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 3, buffer2);
+
+  run(
+    suite(
+      "insertBuffer with capacity change",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(12))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(18))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 10, 11, 12, 13, 14, 15, 3, 4, 5]))
+        )
+      ]
+    )
+  );
+};
+
+// test insertBuffer at start with capacity change
+do {
+  let buffer = B.initPresized<Nat>(8);
+  for (i in Iter.range(0, 5)) {
+    B.add(buffer, i)
+  };
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 0, buffer2);
+
+  run(
+    suite(
+      "insertBuffer at start with capacity change",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(12))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(18))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5]))
+        )
+      ]
+    )
+  );
+};
+
+// test insertBuffer at end with capacity change
+do {
+  let buffer = B.initPresized<Nat>(8);
+  for (i in Iter.range(0, 5)) {
+    B.add(buffer, i)
+  };
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 6, buffer2);
+
+  run(
+    suite(
+      "insertBuffer at end with capacity change",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(12))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(18))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15]))
+        )
+      ]
+    )
+  );
+};
+
+// test insertBuffer to empty buffer
+do {
+  let buffer = B.init<Nat>();
+
+  let buffer2 = B.initPresized<Nat>(10);
+  for (i in Iter.range(10, 15)) {
+    B.add(buffer2, i)
+  };
+
+  B.insertBuffer(buffer, 0, buffer2);
+
+  run(
+    suite(
+      "insertBuffer to empty buffer",
+      [
+        test(
+          "size",
+          B.size(buffer),
+          M.equals(T.nat(6))
+        ),
+        test(
+          "capacity",
+          B.capacity(buffer),
+          M.equals(T.nat(9))
+        ),
+        test(
+          "elements",
+          B.toArray(buffer),
+          M.equals(T.array<Nat>(T.natTestable, [10, 11, 12, 13, 14, 15]))
+        )
+      ]
+    )
+  );
+};

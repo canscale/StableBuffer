@@ -20,10 +20,29 @@ import Prim "mo:⛔";
 
 module {
 
+  // The following constants are used to manage the capacity.
+  // The length of `elements` is increased by `INCREASE_FACTOR` when capacity is reached.
+  // The length of `elements` is decreased by `DECREASE_FACTOR` when capacity is strictly less than
+  // `DECREASE_THRESHOLD`.
+
+  // INCREASE_FACTOR = INCREASE_FACTOR_NUME / INCREASE_FACTOR_DENOM (with floating point division)
+  // Keep INCREASE_FACTOR low to minimize cycle limit problem
+  private let INCREASE_FACTOR_NUME = 3;
+  private let INCREASE_FACTOR_DENOM = 2;
+
   public type StableBuffer<X> = {
     initCapacity: Nat;
     var count: Nat;
     var elems: [var X];
+  };
+
+  private func newCapacity(oldCapacity : Nat) : Nat {
+    if (oldCapacity == 0) {
+      1
+    } else {
+      // calculates ceil(oldCapacity * INCREASE_FACTOR) without floats
+      ((oldCapacity * INCREASE_FACTOR_NUME) + INCREASE_FACTOR_DENOM - 1) / INCREASE_FACTOR_DENOM
+    }
   };
 
   /// Initializes a buffer of given initial capacity. Note that this capacity is not realized until an element
@@ -48,7 +67,7 @@ module {
         if (buffer.count == 0) {
           if (buffer.initCapacity > 0) { buffer.initCapacity } else { 1 }
         } else {
-          2 * buffer.elems.size()
+          newCapacity(buffer.elems.size())
         };
       let elems2 = Prim.Array_init<X>(size, elem);
       var i = 0;
@@ -169,5 +188,139 @@ module {
   /// index is out of bounds. Indexing is zero-based.
   public func put<X>(buffer: StableBuffer<X>, i : Nat, elem : X) {
     buffer.elems[i] := elem;
+  };
+
+  /// Returns the capacity of the buffer (the length of the underlying array).
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// let buffer = StableBuffer.initPresized<Nat>(2); // underlying array has capacity 2
+  /// StableBuffer.add(buffer, 10);
+  /// let c1 = StableBuffer.capacity(buffer); // => 2
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12); // causes capacity to increase by factor of 2
+  /// let c1 = StableBuffer.capacity(buffer); // => 4
+  /// ```
+  ///
+  /// Runtime: O(1)
+  ///
+  /// Space: O(1)
+  public func capacity<X>(buffer: StableBuffer<X>) : Nat = buffer.elems.size();
+
+  /// Inserts `element` at `index`, shifts all elements to the right of
+  /// `index` over by one index. Traps if `index` is greater than size.
+  ///
+  /// ```motoko include=initialize
+  /// let buffer = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.insert(buffer, 1, 9);
+  /// StableBuffer.toArray(buffer) // => [10, 9, 11]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Amortized Space: O(1), Worst Case Space: O(size)
+  public func insert<X>(buffer: StableBuffer<X>, index : Nat, element : X) {
+    if (index > buffer.count) {
+      Prim.trap "Buffer index out of bounds in insert"
+    };
+    let capacity = buffer.elems.size();
+
+    if (buffer.count + 1 > capacity) {
+      let capacity = buffer.elems.size();
+      let elements2 = Prim.Array_init<X>(newCapacity capacity, element);
+      var i = 0;
+      while (i < buffer.count + 1) {
+        if (i < index) {
+          elements2[i] := buffer.elems[i]
+        } else if (i == index) {
+          elements2[i] := element
+        } else {
+          elements2[i] := buffer.elems[i - 1]
+        };
+
+        i += 1
+      };
+      buffer.elems := elements2
+    } else {
+      var i : Nat = buffer.count;
+      while (i > index) {
+        buffer.elems[i] := buffer.elems[i - 1];
+        i -= 1
+      };
+      buffer.elems[index] := element
+    };
+
+    buffer.count += 1
+  };
+
+  /// Inserts `buffer2` at `index`, and shifts all elements to the right of
+  /// `index` over by size2. Traps if `index` is greater than size.
+  ///
+  /// ```motoko include=initialize
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 10);
+  /// StableBuffer.add(buffer1, 11);
+  /// StableBuffer.add(buffer2, 12);
+  /// StableBuffer.add(buffer2, 13);
+  /// StableBuffer.insertBuffer(buffer1, 1, buffer2);
+  /// StableBuffer.toArray(buffer1) // => [10, 12, 13, 11]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Amortized Space: O(1), Worst Case Space: O(size1 + size2)
+  public func insertBuffer<X>(buffer: StableBuffer<X>, index : Nat, buffer2 : StableBuffer<X>) {
+    if (index > buffer.elems.size()) {
+      Prim.trap "Buffer index out of bounds in insertBuffer"
+    };
+    // exit early if the second buffer is empty.
+    if (buffer2.count == 0) {
+      return
+    };
+
+    let size2 = buffer2.count;
+    let capacity = buffer.elems.size();
+
+    // copy elements to new array and shift over in one pass
+    if (buffer.count + size2 > capacity) {
+      let placeholder = if (buffer.count > 0) {
+        buffer.elems[0]
+      } else {
+        buffer2.elems[0]
+      };
+
+      let elements2 = Prim.Array_init<X>(newCapacity(buffer.count + size2), placeholder);
+      var i = 0;
+      for (element in buffer.elems.vals()) {
+        if (i == index) {
+          i += size2
+        };
+        elements2[i] := element;
+        i += 1
+      };
+
+      i := 0;
+      while (i < size2) {
+        elements2[i + index] := buffer2.elems[i];
+        i += 1
+      };
+      buffer.elems := elements2
+    } // just insert
+    else {
+      var i = index;
+      while (i < index + size2) {
+        if (i < buffer.count) {
+          buffer.elems[i + size2] := buffer.elems[i]
+        };
+        buffer.elems[i] := buffer2.elems[i - index];
+
+        i += 1
+      }
+    };
+
+    buffer.count += size2
   };
 }
