@@ -2,6 +2,10 @@
 
 Stable Buffers in Motoko.
 
+## Note - Stable Buffer v1.0.0 has just been released. 
+This is a breaking change , as it now follows the `[var ?X]` array convention adapted by the [Buffer class in the motoko-base library](https://github.com/dfinity/motoko-base/blob/98c5717b283a8ec233907c3a3e92c79e3bbab1b3/src/Buffer.mo#L69) in late October '22 (previously the internal elements were `[var X]`).
+
+
 ## Motivation
 Inspiration taken from [this back and forth in the Dfinity developer forums](https://forum.dfinity.org/t/clarification-on-stable-types-with-examples/11075).
 
