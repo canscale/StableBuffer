@@ -94,6 +94,7 @@ module {
   /// Resets the buffer.
   public func clear<X>(buffer : StableBuffer<X>) : () {
     buffer.count := 0;
+    buffer.elems := [var];
   };
 
   /// Returns a copy of this buffer.
@@ -179,5 +180,67 @@ module {
   /// index is out of bounds. Indexing is zero-based.
   public func put<X>(buffer : StableBuffer<X>, i : Nat, elem : X) {
     buffer.elems[i] := ?elem;
+  };
+
+  /// Returns true iff `buffer` contains `element` with respect to equality
+  /// defined by `equal`.
+  ///
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// Buffer.add(buffer, 2);
+  /// Buffer.add(buffer, 0);
+  /// Buffer.add(buffer, 3);
+  /// Buffer.contains<Nat>(buffer, 2, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func contains<X>(buffer : StableBuffer<X>, element : X, equal : (X, X) -> Bool) : Bool {
+    for (current in vals(buffer)) {
+      if (equal(current, element)) {
+        return true
+      }
+    };
+
+    false
+  };
+
+  /// Finds the first index of `element` in `buffer` using equality of elements defined
+  /// by `equal`. Returns `null` if `element` is not found.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// Buffer.add(buffer, 1);
+  /// Buffer.add(buffer, 2);
+  /// Buffer.add(buffer, 3);
+  /// Buffer.add(buffer, 4);
+  ///
+  /// Buffer.indexOf<Nat>(3, buffer, Nat.equal); // => ?2
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func indexOf<X>(element : X, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : ?Nat {
+    let bufferSize = size(buffer);
+    var i = 0;
+    while (i < bufferSize) {
+      if (equal(get(buffer, i), element)) {
+        return ?i
+      };
+      i += 1
+    };
+
+    null
   };
 };

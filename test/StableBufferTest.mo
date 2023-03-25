@@ -2,7 +2,14 @@ import Prim "mo:⛔";
 import B "../src/StableBuffer";
 import I "mo:base/Iter";
 import O "mo:base/Option";
+import Nat "mo:base/Nat";
 import Array "mo:base/Array";
+
+import Suite "mo:matchers/Suite";
+import T "mo:matchers/Testable";
+import M "mo:matchers/Matchers";
+
+let { run; test; suite } = Suite;
 
 // test repeated growing
 let a = B.initPresized<Nat>(3);
@@ -114,4 +121,98 @@ do {
   assert (B.toArray(e).size() == 3);
   assert (B.toVarArray(e).size() == 3);
   assert (e.elems.size() == 4);
-}
+};
+
+
+var buffer = B.initPresized<Nat>(3);
+
+for (i in I.range(0, 5)) {
+  B.add(buffer, i);
+};
+
+let containsSuite = suite("contains", [
+  suite("with an empty buffer",
+    [
+      test("returns false for any element",
+        B.contains<Nat>(B.initPresized<Nat>(3), 2, Nat.equal),
+        M.equals(T.bool(false))
+      ),
+    ]
+  ),
+  suite("with a non-empty buffer", [
+    test("returns true if the element exists",
+      B.contains<Nat>(buffer, 2, Nat.equal),
+      M.equals(T.bool(true))
+    ),
+    test("returns false if the element does not exist",
+      B.contains<Nat>(buffer, 9, Nat.equal),
+      M.equals(T.bool(false))
+    )
+  ])
+]);
+
+B.clear(buffer);
+
+for (i in I.range(0, 6)) {
+  B.add(buffer, i)
+};
+
+let indeOfSuite = suite("indexOf", [
+  test(
+    "find in middle",
+    B.indexOf<Nat>(2, buffer, Nat.equal),
+    M.equals(T.optional(T.natTestable, ?2))
+  ),
+  test(
+    "find first",
+    B.indexOf<Nat>(0, buffer, Nat.equal),
+    M.equals(T.optional(T.natTestable, ?0))
+  ),
+  test(
+    "find last",
+    B.indexOf<Nat>(6, buffer, Nat.equal),
+    M.equals(T.optional(T.natTestable, ?6))
+  ),
+  test(
+    "not found",
+    B.indexOf<Nat>(10, buffer, Nat.equal),
+    M.equals(T.optional(T.natTestable, null : ?Nat))
+  ),
+  test(
+    "empty",
+    B.indexOf<Nat>(100, B.initPresized<Nat>(3), Nat.equal),
+    M.equals(T.optional(T.natTestable, null : ?Nat))
+  )
+]);
+
+
+for (i in I.range(0, 6)) {
+  B.add(buffer, i)
+};
+
+let clearSuite = suite("clear", [
+  test("before clearing, buffer has at least one element",
+    buffer.elems.size() > 0 and B.size(buffer) > 0,
+    M.equals(T.bool(true))
+  ),
+  test("clears a buffer with elements",
+    do {
+      B.clear(buffer);
+      buffer.elems.size() == 0 and B.size(buffer) == 0;
+    },
+    M.equals(T.bool(true))
+  ),
+  test("clearing an empty buffer makes no difference",
+    do {
+      B.clear(B.initPresized<Nat>(3));
+      buffer.elems.size() == 0 and B.size(buffer) == 0;
+    },
+    M.equals(T.bool(true))
+  ),
+]);
+
+run(suite("buffer", [
+  containsSuite,
+  indeOfSuite,
+  clearSuite
+]))
