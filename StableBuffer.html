@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head title="Doc"><meta charset="UTF-8"/><link href="styles.css" rel="stylesheet"/></head><body><nav class="sidebar"><h3>Modules</h3><ul><li><li><a href="StableBuffer.html">StableBuffer</a></li></li></ul><h3>Declarations</h3><ul><li><li><a href="#type.StableBuffer">StableBuffer</a></li></li><li><li><a href="#initPresized">initPresized</a></li></li><li><li><a href="#init">init</a></li></li><li><li><a href="#add">add</a></li></li><li><li><a href="#removeLast">removeLast</a></li></li><li><li><a href="#append">append</a></li></li><li><li><a href="#size">size</a></li></li><li><li><a href="#clear">clear</a></li></li><li><li><a href="#clone">clone</a></li></li><li><li><a href="#vals">vals</a></li></li><li><li><a href="#fromArray">fromArray</a></li></li><li><li><a href="#toArray">toArray</a></li></li><li><li><a href="#toVarArray">toVarArray</a></li></li><li><li><a href="#get">get</a></li></li><li><li><a href="#getOpt">getOpt</a></li></li><li><li><a href="#put">put</a></li></li></ul></nav><div class="documentation"><h1>StableBuffer</h1><p>Generic, extensible buffers</p>
+<html><head title="Doc"><meta charset="UTF-8"/><link href="styles.css" rel="stylesheet"/></head><body><nav class="sidebar"><h3>Modules</h3><ul><li><li><a href="StableBuffer.html">StableBuffer</a></li></li></ul><h3>Declarations</h3><ul><li><li><a href="#type.StableBuffer">StableBuffer</a></li></li><li><li><a href="#initPresized">initPresized</a></li></li><li><li><a href="#init">init</a></li></li><li><li><a href="#add">add</a></li></li><li><li><a href="#removeLast">removeLast</a></li></li><li><li><a href="#append">append</a></li></li><li><li><a href="#size">size</a></li></li><li><li><a href="#clear">clear</a></li></li><li><li><a href="#clone">clone</a></li></li><li><li><a href="#vals">vals</a></li></li><li><li><a href="#fromArray">fromArray</a></li></li><li><li><a href="#toArray">toArray</a></li></li><li><li><a href="#toVarArray">toVarArray</a></li></li><li><li><a href="#get">get</a></li></li><li><li><a href="#getOpt">getOpt</a></li></li><li><li><a href="#put">put</a></li></li><li><li><a href="#contains">contains</a></li></li><li><li><a href="#indexOf">indexOf</a></li></li></ul></nav><div class="documentation"><h1>StableBuffer</h1><p>Generic, extensible buffers</p>
 <p><code>StableBuffer&lt;X&gt;</code> is adapted directly from https://github.com/dfinity/motoko-base/blob/master/src/Buffer.mo,
 ripping all functions and instance variables out of the <code>Buffer</code> class in order to make a stable, persistent
 buffer.</p>
@@ -29,4 +29,34 @@ elements had been added to the buffer.</p>
 </p></div><div class="declaration"><h4 class="function" id="getOpt"><code><span class="keyword">public func </span><span class="fnname">getOpt</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">i</span> : <span class="type">Nat</span>) : ?<span class="type">X</span></code></h4><p><p>Gets the <code>i</code>-th element of the buffer as an option. Returns <code>null</code> when <code>i &gt;= count</code>. Indexing is zero-based.</p>
 </p></div><div class="declaration"><h4 class="function" id="put"><code><span class="keyword">public func </span><span class="fnname">put</span>&lt;<span class="type">X</span>&gt;(<br/>  <span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <br/>  <span class="parameter">i</span> : <span class="type">Nat</span>, <br/>  <span class="parameter">elem</span> : <span class="type">X</span><br/>)</code></h4><p><p>Overwrites the current value of the <code>i</code>-entry of this buffer with <code>elem</code>. Traps if the
 index is out of bounds. Indexing is zero-based.</p>
+</p></div><div class="declaration"><h4 class="function" id="contains"><code><span class="keyword">public func </span><span class="fnname">contains</span>&lt;<span class="type">X</span>&gt;(<br/>  <span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <br/>  <span class="parameter">element</span> : <span class="type">X</span>, <br/>  <span class="parameter">equal</span> : (<span class="type">X</span>, <span class="type">X</span>) -&gt; <span class="type">Bool</span><br/>) : <span class="type">Bool</span></code></h4><p><p>Returns true iff <code>buffer</code> contains <code>element</code> with respect to equality
+defined by <code>equal</code>.</p>
+<p>Example:</p>
+<pre><code>motoko include=initialize
+import Nat &quot;mo:base/Nat&quot;;
+
+Buffer.add(buffer, 2);
+Buffer.add(buffer, 0);
+Buffer.add(buffer, 3);
+Buffer.contains&lt;Nat&gt;(buffer, 2, Nat.equal); // =&gt; true</code></pre>
+
+<p>Runtime: O(size)</p>
+<p>Space: O(1)</p>
+<p>*Runtime and space assumes that <code>equal</code> runs in O(1) time and space.</p>
+</p></div><div class="declaration"><h4 class="function" id="indexOf"><code><span class="keyword">public func </span><span class="fnname">indexOf</span>&lt;<span class="type">X</span>&gt;(<br/>  <span class="parameter">element</span> : <span class="type">X</span>, <br/>  <span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <br/>  <span class="parameter">equal</span> : (<span class="type">X</span>, <span class="type">X</span>) -&gt; <span class="type">Bool</span><br/>) : ?<span class="type">Nat</span></code></h4><p><p>Finds the first index of <code>element</code> in <code>buffer</code> using equality of elements defined
+by <code>equal</code>. Returns <code>null</code> if <code>element</code> is not found.</p>
+<p>Example:</p>
+<pre><code>motoko include=initialize
+import Nat &quot;mo:base/Nat&quot;;
+
+Buffer.add(buffer, 1);
+Buffer.add(buffer, 2);
+Buffer.add(buffer, 3);
+Buffer.add(buffer, 4);
+
+Buffer.indexOf&lt;Nat&gt;(3, buffer, Nat.equal); // =&gt; ?2</code></pre>
+
+<p>Runtime: O(size)</p>
+<p>Space: O(size)</p>
+<p>*Runtime and space assumes that <code>equal</code> runs in O(1) time and space.</p>
 </p></div></div></body></html>
