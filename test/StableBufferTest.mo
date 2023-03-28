@@ -34,6 +34,7 @@ for (i in I.revRange(123, 0)) {
     case (?el) { assert el == i };
   }
 };
+assert a.elems[0] == null;
 assert O.isNull(B.removeLast(a));
 
 func natArrayIter(elems:[Nat]) : I.Iter<Nat> = object {
@@ -211,8 +212,121 @@ let clearSuite = suite("clear", [
   ),
 ]);
 
+buffer := B.init<Nat>();
+for (i in I.range(0, 5)) {
+  B.add(buffer, i);
+};
+
+let removeSuite = suite("remove", [
+  suite("middle element",
+    [
+      test(
+        "return value",
+        B.remove(buffer, 2),
+        M.equals(T.nat(2))
+      ),
+      test(
+        "size",
+        B.size(buffer),
+        M.equals(T.nat(5))
+      ),
+      test(
+        "underlying array size",
+        buffer.elems.size(),
+        M.equals(T.nat(8))
+      ),
+      test(
+        "elements",
+        B.toArray(buffer),
+        M.equals(T.array<Nat>(T.natTestable, [0, 1, 3, 4, 5]))
+      ),
+      test(
+        "then remove first element",
+        B.remove(buffer, 0),
+        M.equals(T.nat(0))
+      ),
+      test(
+        "size",
+        B.size(buffer),
+        M.equals(T.nat(4))
+      ),
+      test(
+        "capacity",
+        buffer.elems.size(),
+        M.equals(T.nat(8))
+      ),
+      test(
+        "elements",
+        B.toArray(buffer),
+        M.equals(T.array<Nat>(T.natTestable, [1, 3, 4, 5]))
+      )
+    ]
+  ),
+  suite(
+    "remove last element at capacity",
+    [
+      test(
+        "return value",
+        do {
+          buffer := B.initPresized<Nat>(3);
+          for (i in I.range(0, 2)) {
+            B.add(buffer,i)
+          };
+          B.remove(buffer, 2)
+        },
+        M.equals(T.nat(2))
+      ),
+      test(
+        "size",
+        B.size(buffer),
+        M.equals(T.nat(2))
+      ),
+      test(
+        "capacity",
+        buffer.elems.size(),
+        M.equals(T.nat(3))
+      ),
+      test(
+        "elements",
+        B.toArray(buffer),
+        M.equals(T.array<Nat>(T.natTestable, [0, 1]))
+      )
+    ]
+  ),
+    suite(
+    "remove until empty",
+    [
+      test(
+        "size",
+        do {
+          buffer := B.init<Nat>();
+          for (i in I.range(0, 5)) {
+            B.add(buffer, i)
+          };
+          for (i in I.range(0, 5)) {
+            ignore B.remove(buffer, 5 - i : Nat);
+          };
+          B.size(buffer)
+        },
+        M.equals(T.nat(0))
+      ),
+      test(
+        "capacity",
+        buffer.elems.size(),
+        M.equals(T.nat(2))
+      ),
+      test(
+        "elements",
+        B.toArray(buffer),
+        M.equals(T.array<Nat>(T.natTestable, []))
+      )
+    ]
+  )
+]);
+
 run(suite("buffer", [
   containsSuite,
   indeOfSuite,
-  clearSuite
+  clearSuite,
+  removeSuite
 ]))
