@@ -389,7 +389,7 @@ let removeLastSuite = suite("removeLast", [
           B.add(buffer, i)
         };
         for (i in I.range(0, 5)) {
-          ignore B.removeLast(b)
+          let x = B.removeLast(buffer);
         };
         B.removeLast(buffer);
       },
@@ -403,7 +403,7 @@ let removeLastSuite = suite("removeLast", [
     test(
       "capacity",
       B.capacity(buffer),
-      M.equals(T.nat(2))
+      M.equals(T.nat(3))
     ),
     test(
       "elements",
@@ -413,9 +413,63 @@ let removeLastSuite = suite("removeLast", [
   ])
 ]);
 
+let reserveSuite = suite("reserve", [
+  suite("decrease capacity", [
+    test(
+      "size",
+      do {
+        buffer := B.initPresized<Nat>(10);
+        for (i in I.range(0, 5)) {
+          B.add(buffer, i)
+        };
+        B.reserve(buffer, 6);
+        B.size(buffer);
+      },
+      M.equals(T.nat(6))
+    ),
+    test(
+      "capacity",
+      B.capacity(buffer),
+      M.equals(T.nat(6))
+    ),
+    test(
+      "elements",
+      B.toArray(buffer),
+      M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 3, 4, 5]))
+    )
+  ]),
+  suite("increase capacity", [
+    test(
+      "size",
+      do {
+        buffer := B.initPresized<Nat>(10);
+        for (i in I.range(0, 5)) {
+          B.add(buffer, i)
+        };
+
+        B.reserve(buffer, 20);
+        B.size(buffer);
+      },
+      M.equals(T.nat(6))
+    ),
+    test(
+      "capacity",
+      B.capacity(buffer),
+      M.equals(T.nat(20))
+    ),
+    test(
+      "elements",
+      B.toArray(buffer),
+      M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 3, 4, 5]))
+    )
+  ])
+]);
+
 run(suite("buffer", [
   containsSuite,
   indeOfSuite,
   clearSuite,
-  removeSuite
+  removeSuite,
+  removeLastSuite,
+  reserveSuite
 ]))

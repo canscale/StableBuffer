@@ -33,7 +33,7 @@ module {
   public func initPresized<X>(initCapacity : Nat) : StableBuffer<X> = {
     initCapacity = initCapacity;
     var count = 0;
-    var elems = [var];
+    var elems = Prim.Array_init(initCapacity, null);
   };
 
   /// Initializes a buffer of initial capacity 0. When the first element is added the size will grow to one
@@ -154,6 +154,12 @@ module {
     let lastElement = buffer.elems[buffer.count];
     buffer.elems[buffer.count] := null;
 
+    if (buffer.count < buffer.elems.size() / DECREASE_THRESHOLD) {
+      // FIXME should this new capacity be a function of _size
+      // instead of the current capacity? E.g. _size * INCREASE_FACTOR
+      reserve(buffer, buffer.elems.size() / DECREASE_FACTOR)
+    };
+
     lastElement;
   };
 
@@ -186,6 +192,34 @@ module {
   ///
   /// Space: O(1)
   public func capacity<X>(buffer: StableBuffer<X>) : Nat = buffer.elems.size();
+
+  /// Changes the capacity to `capacity`. Traps if `capacity` < `Buffer.size(buffer)`.
+  ///
+  /// ```motoko include=initialize
+  ///
+  /// Buffer.reserve(buffer, 4);
+  /// Buffer.add(buffer, 10);
+  /// Buffer.add(buffer, 11);
+  /// Buffer.capacity(buffer); // => 4
+  /// ```
+  ///
+  /// Runtime: O(capacity)
+  ///
+  /// Space: O(capacity)
+  public func reserve<X>(buffer: StableBuffer<X>, capacity : Nat) {
+    if (capacity < buffer.count) {
+      Prim.trap "capacity must be >= size in reserve"
+    };
+
+    let elements2 = Prim.Array_init<?X>(capacity, null);
+
+    var i = 0;
+    while (i < buffer.count) {
+      elements2[i] := buffer.elems[i];
+      i += 1
+    };
+    buffer.elems:= elements2
+  };
 
   /// Resets the buffer.
   public func clear<X>(buffer : StableBuffer<X>) : () {
