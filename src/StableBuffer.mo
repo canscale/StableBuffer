@@ -171,6 +171,22 @@ module {
   /// Returns the count of elements in the buffer
   public func size<X>(buffer : StableBuffer<X>) : Nat { buffer.count };
 
+  /// Returns the capacity of the buffer (the length of the underlying array).
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// let buffer = Buffer.initPresized<Nat>(2); // underlying array has capacity 2
+  /// Buffer.add(buffer, 10);
+  /// let size = Buffer.size(buffer);   // => size of 1
+  /// let c1 = Buffer.capacity(buffer); // => capacity of 2
+  /// ```
+  ///
+  /// Runtime: O(1)
+  ///
+  /// Space: O(1)
+  public func capacity<X>(buffer: StableBuffer<X>) : Nat = buffer.elems.size();
+
   /// Resets the buffer.
   public func clear<X>(buffer : StableBuffer<X>) : () {
     buffer.count := 0;

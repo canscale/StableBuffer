@@ -193,20 +193,20 @@ for (i in I.range(0, 6)) {
 
 let clearSuite = suite("clear", [
   test("before clearing, buffer has at least one element",
-    buffer.elems.size() > 0 and B.size(buffer) > 0,
+    B.capacity(buffer) > 0 and B.size(buffer) > 0,
     M.equals(T.bool(true))
   ),
   test("clears a buffer with elements",
     do {
       B.clear(buffer);
-      buffer.elems.size() == 0 and B.size(buffer) == 0;
+      B.capacity(buffer) == 0 and B.size(buffer) == 0;
     },
     M.equals(T.bool(true))
   ),
   test("clearing an empty buffer makes no difference",
     do {
       B.clear(B.initPresized<Nat>(3));
-      buffer.elems.size() == 0 and B.size(buffer) == 0;
+      B.capacity(buffer) == 0 and B.size(buffer) == 0;
     },
     M.equals(T.bool(true))
   ),
@@ -252,7 +252,7 @@ let removeSuite = suite("remove", [
       ),
       test(
         "capacity",
-        buffer.elems.size(),
+        B.capacity(buffer),
         M.equals(T.nat(8))
       ),
       test(
@@ -283,7 +283,7 @@ let removeSuite = suite("remove", [
       ),
       test(
         "capacity",
-        buffer.elems.size(),
+        B.capacity(buffer),
         M.equals(T.nat(3))
       ),
       test(
@@ -312,7 +312,7 @@ let removeSuite = suite("remove", [
       ),
       test(
         "capacity",
-        buffer.elems.size(),
+        B.capacity(buffer),
         M.equals(T.nat(2))
       ),
       test(
@@ -322,6 +322,95 @@ let removeSuite = suite("remove", [
       )
     ]
   )
+]);
+
+buffer := B.initPresized<Nat>(2);
+
+let removeLastSuite = suite("removeLast", [
+  suite("on empty buffer", [
+    test(
+      "return value",
+      do {
+        buffer := B.initPresized<Nat>(2);
+        B.removeLast(buffer);
+      },
+      M.equals(T.optional(T.natTestable, null : ?Nat))
+    ),
+    test(
+      "size",
+      B.size(buffer),
+      M.equals(T.nat(0))
+    ),
+    test(
+      "capacity",
+      B.capacity(buffer),
+      M.equals(T.nat(2))
+    ),
+    test(
+      "elements",
+      B.toArray(buffer),
+      M.equals(T.array<Nat>(T.natTestable, []))
+    )
+  ]),
+  suite("once from filled buffer", [
+    test(
+      "return value",
+      do {
+        buffer := B.initPresized<Nat>(2);
+        for (i in I.range(0, 5)) {
+          B.add(buffer, i)
+        };
+        B.removeLast(buffer);
+      },
+      M.equals(T.optional<Nat>(T.natTestable, ?5))
+    ),
+    test(
+      "size",
+      B.size(buffer),
+      M.equals(T.nat(5))
+    ),
+    test(
+      "capacity",
+      B.capacity(buffer),
+      M.equals(T.nat(8))
+    ),
+    test(
+      "elements",
+      B.toArray(buffer),
+      M.equals(T.array<Nat>(T.natTestable, [0, 1, 2, 3, 4]))
+    )
+  ]),
+  suite("removeLast until empty", [
+    test(
+      "return value",
+      do {
+        buffer := B.initPresized<Nat>(3);
+        for (i in I.range(0, 5)) {
+          B.add(buffer, i)
+        };
+        for (i in I.range(0, 5)) {
+          ignore B.removeLast(b)
+        };
+        B.removeLast(buffer);
+      },
+      M.equals(T.optional(T.natTestable, null : ?Nat))
+    ),
+    test(
+      "size",
+      B.size(buffer),
+      M.equals(T.nat(0))
+    ),
+    test(
+      "capacity",
+      B.capacity(buffer),
+      M.equals(T.nat(2))
+    ),
+    test(
+      "elements",
+      B.toArray(buffer),
+      M.equals(T.array<Nat>(T.natTestable, []))
+    )
+  ])
 ]);
 
 run(suite("buffer", [
