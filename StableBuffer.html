@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head title="Doc"><meta charset="UTF-8"/><link href="styles.css" rel="stylesheet"/></head><body><nav class="sidebar"><h3>Modules</h3><ul><li><li><a href="StableBuffer.html">StableBuffer</a></li></li></ul><h3>Declarations</h3><ul><li><li><a href="#type.StableBuffer">StableBuffer</a></li></li><li><li><a href="#initPresized">initPresized</a></li></li><li><li><a href="#init">init</a></li></li><li><li><a href="#add">add</a></li></li><li><li><a href="#removeLast">removeLast</a></li></li><li><li><a href="#append">append</a></li></li><li><li><a href="#size">size</a></li></li><li><li><a href="#clear">clear</a></li></li><li><li><a href="#clone">clone</a></li></li><li><li><a href="#vals">vals</a></li></li><li><li><a href="#fromArray">fromArray</a></li></li><li><li><a href="#toArray">toArray</a></li></li><li><li><a href="#toVarArray">toVarArray</a></li></li><li><li><a href="#get">get</a></li></li><li><li><a href="#getOpt">getOpt</a></li></li><li><li><a href="#put">put</a></li></li><li><li><a href="#contains">contains</a></li></li><li><li><a href="#indexOf">indexOf</a></li></li></ul></nav><div class="documentation"><h1>StableBuffer</h1><p>Generic, extensible buffers</p>
+<html><head title="Doc"><meta charset="UTF-8"/><link href="styles.css" rel="stylesheet"/></head><body><nav class="sidebar"><h3>Modules</h3><ul><li><li><a href="StableBuffer.html">StableBuffer</a></li></li></ul><h3>Declarations</h3><ul><li><li><a href="#type.StableBuffer">StableBuffer</a></li></li><li><li><a href="#initPresized">initPresized</a></li></li><li><li><a href="#init">init</a></li></li><li><li><a href="#add">add</a></li></li><li><li><a href="#remove">remove</a></li></li><li><li><a href="#removeLast">removeLast</a></li></li><li><li><a href="#append">append</a></li></li><li><li><a href="#size">size</a></li></li><li><li><a href="#capacity">capacity</a></li></li><li><li><a href="#reserve">reserve</a></li></li><li><li><a href="#clear">clear</a></li></li><li><li><a href="#clone">clone</a></li></li><li><li><a href="#vals">vals</a></li></li><li><li><a href="#fromArray">fromArray</a></li></li><li><li><a href="#toArray">toArray</a></li></li><li><li><a href="#toVarArray">toVarArray</a></li></li><li><li><a href="#get">get</a></li></li><li><li><a href="#getOpt">getOpt</a></li></li><li><li><a href="#put">put</a></li></li><li><li><a href="#contains">contains</a></li></li><li><li><a href="#indexOf">indexOf</a></li></li></ul></nav><div class="documentation"><h1>StableBuffer</h1><p>Generic, extensible buffers</p>
 <p><code>StableBuffer&lt;X&gt;</code> is adapted directly from https://github.com/dfinity/motoko-base/blob/master/src/Buffer.mo,
 ripping all functions and instance variables out of the <code>Buffer</code> class in order to make a stable, persistent
 buffer.</p>
@@ -15,10 +15,58 @@ determined at construction and cannot be changed).</p>
 is added to the buffer.</p>
 </p></div><div class="declaration"><h4 class="function" id="init"><code><span class="keyword">public func </span><span class="fnname">init</span>&lt;<span class="type">X</span>&gt;() : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;</code></h4><p><p>Initializes a buffer of initial capacity 0. When the first element is added the size will grow to one</p>
 </p></div><div class="declaration"><h4 class="function" id="add"><code><span class="keyword">public func </span><span class="fnname">add</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">elem</span> : <span class="type">X</span>) : ()</code></h4><p><p>Adds a single element to the buffer.</p>
-</p></div><div class="declaration"><h4 class="function" id="removeLast"><code><span class="keyword">public func </span><span class="fnname">removeLast</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : ?<span class="type">X</span></code></h4><p><p>Removes the item that was inserted last and returns it or <code>null</code> if no
-elements had been added to the buffer.</p>
+</p></div><div class="declaration"><h4 class="function" id="remove"><code><span class="keyword">public func </span><span class="fnname">remove</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">index</span> : <span class="type">Nat</span>) : <span class="type">X</span></code></h4><p><p>Removes and returns the element at <code>index</code> from the buffer.
+All elements with index &gt; <code>index</code> are shifted one position to the left.
+This may cause a downsizing of the array.</p>
+<p>Traps if index &gt;= Buffer.size(buffer).</p>
+<p>WARNING: Repeated removal of elements using this method is ineffecient
+and might be a sign that you should consider a different data-structure
+for your use case.</p>
+<p>Example:</p>
+<pre><code>motoko include=initialize
+
+Buffer.add(buffer, 10);
+Buffer.add(buffer, 11);
+Buffer.add(buffer, 12);
+let x = Buffer.remove(buffer, 1); // evaluates to 11. 11 no longer in list.
+Buffer.toArray(buffer) // =&gt; [10, 12]</code></pre>
+
+<p>Runtime: O(size)</p>
+<p>Amortized Space: O(1), Worst Case Space: O(size)</p>
+</p></div><div class="declaration"><h4 class="function" id="removeLast"><code><span class="keyword">public func </span><span class="fnname">removeLast</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : ?<span class="type">X</span></code></h4><p><p>Removes and returns the last item in the buffer or <code>null</code> if
+the buffer is empty.</p>
+<p>Example:</p>
+<pre><code>motoko include=initialize
+
+Buffer.add(buffer, 10);
+Buffer.add(buffer, 11);
+Buffer.removeLast(buffer); // =&gt; ?11</code></pre>
+
+<p>Amortized Runtime: O(1), Worst Case Runtime: O(size)</p>
+<p>Amortized Space: O(1), Worst Case Space: O(size)</p>
 </p></div><div class="declaration"><h4 class="function" id="append"><code><span class="keyword">public func </span><span class="fnname">append</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">a</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">b</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : ()</code></h4><p><p>Adds all elements in buffer <code>b</code> to buffer <code>a</code>.</p>
 </p></div><div class="declaration"><h4 class="function" id="size"><code><span class="keyword">public func </span><span class="fnname">size</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : <span class="type">Nat</span></code></h4><p><p>Returns the count of elements in the buffer</p>
+</p></div><div class="declaration"><h4 class="function" id="capacity"><code><span class="keyword">public func </span><span class="fnname">capacity</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : <span class="type">Nat</span></code></h4><p><p>Returns the capacity of the buffer (the length of the underlying array).</p>
+<p>Example:</p>
+<pre><code>motoko include=initialize
+
+let buffer = Buffer.initPresized&lt;Nat&gt;(2); // underlying array has capacity 2
+Buffer.add(buffer, 10);
+let size = Buffer.size(buffer);   // =&gt; size of 1
+let c1 = Buffer.capacity(buffer); // =&gt; capacity of 2</code></pre>
+
+<p>Runtime: O(1)</p>
+<p>Space: O(1)</p>
+</p></div><div class="declaration"><h4 class="function" id="reserve"><code><span class="keyword">public func </span><span class="fnname">reserve</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">capacity</span> : <span class="type">Nat</span>)</code></h4><p><p>Changes the capacity to <code>capacity</code>. Traps if <code>capacity</code> &lt; <code>Buffer.size(buffer)</code>.</p>
+<pre><code>motoko include=initialize
+
+Buffer.reserve(buffer, 4);
+Buffer.add(buffer, 10);
+Buffer.add(buffer, 11);
+Buffer.capacity(buffer); // =&gt; 4</code></pre>
+
+<p>Runtime: O(capacity)</p>
+<p>Space: O(capacity)</p>
 </p></div><div class="declaration"><h4 class="function" id="clear"><code><span class="keyword">public func </span><span class="fnname">clear</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : ()</code></h4><p><p>Resets the buffer.</p>
 </p></div><div class="declaration"><h4 class="function" id="clone"><code><span class="keyword">public func </span><span class="fnname">clone</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;</code></h4><p><p>Returns a copy of this buffer.</p>
 </p></div><div class="declaration"><h4 class="function" id="vals"><code><span class="keyword">public func </span><span class="fnname">vals</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : { next : () -&gt; ?<span class="type">X</span> }</code></h4><p><p>Returns an <code>Iter</code> over the elements of this buffer.</p>
@@ -27,8 +75,17 @@ elements had been added to the buffer.</p>
 </p></div><div class="declaration"><h4 class="function" id="toVarArray"><code><span class="keyword">public func </span><span class="fnname">toVarArray</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;) : [<span class="keyword">var </span><span class="type">X</span>]</code></h4><p><p>Creates a mutable array containing this buffer's elements.</p>
 </p></div><div class="declaration"><h4 class="function" id="get"><code><span class="keyword">public func </span><span class="fnname">get</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">i</span> : <span class="type">Nat</span>) : <span class="type">X</span></code></h4><p><p>Gets the <code>i</code>-th element of this buffer. Traps if  <code>i &gt;= count</code>. Indexing is zero-based.</p>
 </p></div><div class="declaration"><h4 class="function" id="getOpt"><code><span class="keyword">public func </span><span class="fnname">getOpt</span>&lt;<span class="type">X</span>&gt;(<span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <span class="parameter">i</span> : <span class="type">Nat</span>) : ?<span class="type">X</span></code></h4><p><p>Gets the <code>i</code>-th element of the buffer as an option. Returns <code>null</code> when <code>i &gt;= count</code>. Indexing is zero-based.</p>
-</p></div><div class="declaration"><h4 class="function" id="put"><code><span class="keyword">public func </span><span class="fnname">put</span>&lt;<span class="type">X</span>&gt;(<br/>  <span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <br/>  <span class="parameter">i</span> : <span class="type">Nat</span>, <br/>  <span class="parameter">elem</span> : <span class="type">X</span><br/>)</code></h4><p><p>Overwrites the current value of the <code>i</code>-entry of this buffer with <code>elem</code>. Traps if the
-index is out of bounds. Indexing is zero-based.</p>
+</p></div><div class="declaration"><h4 class="function" id="put"><code><span class="keyword">public func </span><span class="fnname">put</span>&lt;<span class="type">X</span>&gt;(<br/>  <span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <br/>  <span class="parameter">index</span> : <span class="type">Nat</span>, <br/>  <span class="parameter">element</span> : <span class="type">X</span><br/>)</code></h4><p><p>Overwrites the current element at <code>index</code> with <code>element</code>. Traps if
+<code>index</code> &gt;= Buffer.size(buffer). Indexing is zero-based.</p>
+<p>Example:</p>
+<pre><code>motoko include=initialize
+
+Buffer.add(buffer, 10);
+Buffer.put(buffer, 0, 20); // overwrites 10 at index 0 with 20
+Buffer.toArray(buffer) // =&gt; [20]</code></pre>
+
+<p>Runtime: O(1)</p>
+<p>Space: O(1)</p>
 </p></div><div class="declaration"><h4 class="function" id="contains"><code><span class="keyword">public func </span><span class="fnname">contains</span>&lt;<span class="type">X</span>&gt;(<br/>  <span class="parameter">buffer</span> : <a href="#type.StableBuffer"><span class="type">StableBuffer</span></a>&lt;<span class="type">X</span>&gt;, <br/>  <span class="parameter">element</span> : <span class="type">X</span>, <br/>  <span class="parameter">equal</span> : (<span class="type">X</span>, <span class="type">X</span>) -&gt; <span class="type">Bool</span><br/>) : <span class="type">Bool</span></code></h4><p><p>Returns true iff <code>buffer</code> contains <code>element</code> with respect to equality
 defined by <code>equal</code>.</p>
 <p>Example:</p>
