@@ -68,7 +68,7 @@ module {
   ///
   /// Example:
   /// ```motoko include=initialize
-  /// buffer.size() // => 0
+  /// size(buffer) // => 0
   /// ```
   ///
   /// Runtime: O(1)
@@ -82,11 +82,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(0); // add 0 to buffer
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3); // causes underlying array to increase in capacity
-  /// Buffer.toArray(buffer) // => [0, 1, 2, 3]
+  /// StableBuffer.add(buffer, 0); // add 0 to buffer
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3); // causes underlying array to increase in capacity
+  /// StableBuffer.toArray(buffer) // => [0, 1, 2, 3]
   /// ```
   ///
   /// Amortized Runtime: O(1), Worst Case Runtime: O(size)
@@ -105,9 +105,9 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.get(0); // => 10
+  /// StableBuffer.add(buffer,10);
+  /// StableBuffer.add(buffer,11);
+  /// StableBuffer.get(buffer,0); // => 10
   /// ```
   ///
   /// Runtime: O(1)
@@ -126,10 +126,10 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// let x = buffer.getOpt(0); // => ?10
-  /// let y = buffer.getOpt(2); // => null
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// let x = StableBuffer.getOpt(buffer, 0); // => ?10
+  /// let y = StableBuffer.getOpt(buffer, 2); // => null
   /// ```
   ///
   /// Runtime: O(1)
@@ -149,9 +149,9 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.put(0, 20); // overwrites 10 at index 0 with 20
-  /// Buffer.toArray(buffer) // => [20]
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.put(buffer, 0, 20); // overwrites 10 at index 0 with 20
+  /// StableBuffer.toArray(Buffer, buffer) // => [20]
   /// ```
   ///
   /// Runtime: O(1)
@@ -170,9 +170,9 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.removeLast(); // => ?11
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.removeLast(buffer); // => ?11
   /// ```
   ///
   /// Amortized Runtime: O(1), Worst Case Runtime: O(size)
@@ -209,11 +209,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.add(12);
-  /// let x = buffer.remove(1); // evaluates to 11. 11 no longer in list.
-  /// Buffer.toArray(buffer) // => [10, 12]
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
+  /// let x = StableBuffer.remove(buffer, 1); // evaluates to 11. 11 no longer in list.
+  /// StableBuffer.toArray(buffer) // => [10, 12]
   /// ```
   ///
   /// Runtime: O(size)
@@ -270,11 +270,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.add(12);
-  /// buffer.clear(); // buffer is now empty
-  /// Buffer.toArray(buffer) // => []
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
+  /// StableBuffer.clear(buffer, ); // buffer is now empty
+  /// StableBuffer.toArray(buffer) // => []
   /// ```
   ///
   /// Runtime: O(1)
@@ -292,11 +292,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.add(12);
-  /// buffer.filterEntries(func(_, x) = x % 2 == 0); // only keep even elements
-  /// Buffer.toArray(buffer) // => [10, 12]
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
+  /// StableBuffer.filterEntries(buffer, func(_, x) = x % 2 == 0); // only keep even elements
+  /// StableBuffer.toArray(buffer) // => [10, 12]
   /// ```
   ///
   /// Runtime: O(size)
@@ -368,12 +368,12 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// let buffer = Buffer.Buffer<Nat>(2); // underlying array has capacity 2
-  /// buffer.add(10);
-  /// let c1 = buffer.capacity(); // => 2
-  /// buffer.add(11);
-  /// buffer.add(12); // causes capacity to increase by factor of 1.5
-  /// let c2 = buffer.capacity(); // => 3
+  /// let buffer = StableBuffer.initPresized<Nat>(2); // underlying array has capacity 2
+  /// StableBuffer.add(buffer, 10);
+  /// let c1 = StableBuffer.capacity(buffer); // => 2
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12); // causes capacity to increase by factor of 1.5
+  /// let c2 = StableBuffer.capacity(buffer); // => 3
   /// ```
   ///
   /// Runtime: O(1)
@@ -385,10 +385,10 @@ module {
   ///
   /// ```motoko include=initialize
   ///
-  /// buffer.reserve(4);
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.capacity(); // => 4
+  /// StableBuffer.reserve(buffer, 4);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.capacity(buffer); // => 4
   /// ```
   ///
   /// Runtime: O(capacity)
@@ -412,14 +412,14 @@ module {
   /// Adds all elements in buffer `b` to this buffer.
   ///
   /// ```motoko include=initialize
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// let buffer2 = Buffer.Buffer<Nat>(2);
-  /// buffer1.add(10);
-  /// buffer1.add(11);
-  /// buffer2.add(12);
-  /// buffer2.add(13);
-  /// buffer1.append(buffer2); // adds elements from buffer2 to buffer1
-  /// Buffer.toArray(buffer1) // => [10, 11, 12, 13]
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 10);
+  /// StableBuffer.add(buffer1, 11);
+  /// StableBuffer.add(buffer2, 12);
+  /// StableBuffer.add(buffer2, 13);
+  /// StableBuffer.append(buffer1, buffer2); // adds elements from buffer2 to buffer1
+  /// StableBuffer.toArray(buffer1) // => [10, 11, 12, 13]
   /// ```
   ///
   /// Amortized Runtime: O(size2), Worst Case Runtime: O(size1 + size2)
@@ -446,12 +446,12 @@ module {
   /// `index` over by one index. Traps if `index` is greater than size.
   ///
   /// ```motoko include=initialize
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// let buffer2 = Buffer.Buffer<Nat>(2);
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.insert(1, 9);
-  /// Buffer.toArray(buffer) // => [10, 9, 11]
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.insert(buffer, 1, 9);
+  /// StableBuffer.toArray(buffer) // => [10, 9, 11]
   /// ```
   ///
   /// Runtime: O(size)
@@ -495,14 +495,14 @@ module {
   /// `index` over by size2. Traps if `index` is greater than size.
   ///
   /// ```motoko include=initialize
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// let buffer2 = Buffer.Buffer<Nat>(2);
-  /// buffer1.add(10);
-  /// buffer1.add(11);
-  /// buffer2.add(12);
-  /// buffer2.add(13);
-  /// buffer1.insertBuffer(1, buffer2);
-  /// Buffer.toArray(buffer1) // => [10, 12, 13, 11]
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 10);
+  /// StableBuffer.add(buffer1, 11);
+  /// StableBuffer.add(buffer2, 12);
+  /// StableBuffer.add(buffer2, 13);
+  /// StableBuffer.insertBuffer(buffer1, 1, buffer2);
+  /// StableBuffer.toArray(buffer1) // => [10, 12, 13, 11]
   /// ```
   ///
   /// Runtime: O(size)
@@ -557,11 +557,11 @@ module {
   ///
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(11);
-  /// buffer.add(12);
-  /// buffer.add(10);
-  /// buffer.sort(Nat.compare);
-  /// Buffer.toArray(buffer) // => [10, 11, 12]
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.sort(buffer, Nat.compare);
+  /// StableBuffer.toArray(buffer) // => [10, 11, 12]
   /// ```
   ///
   /// Runtime: O(size * log(size))
@@ -644,12 +644,12 @@ module {
   ///
   /// ```motoko include=initialize
   ///
-  /// buffer.add(10);
-  /// buffer.add(11);
-  /// buffer.add(12);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
   ///
   /// var sum = 0;
-  /// for (element in buffer.vals()) {
+  /// for (element in StableBuffer.vals(buffer, )) {
   ///   sum += element;
   /// };
   /// sum // => 33
@@ -676,10 +676,10 @@ module {
   ///
   /// Example:
   /// ```motoko include=initialize
-  /// buffer.add(2);
-  /// buffer.add(0);
-  /// buffer.add(3);
-  /// Buffer.isEmpty(buffer); // => false
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 0);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.isEmpty(buffer); // => false
   /// ```
   ///
   /// ```motoko include=initialize
@@ -699,10 +699,10 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(2);
-  /// buffer.add(0);
-  /// buffer.add(3);
-  /// Buffer.contains<Nat>(buffer, 2, Nat.equal); // => true
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 0);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.contains<Nat>(buffer, 2, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(size)
@@ -726,10 +726,10 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(1);
+  /// StableBuffer.add(buffer, 1);
   ///
-  /// let clone = Buffer.clone(buffer);
-  /// Buffer.toArray(clone); // => [1]
+  /// let clone = StableBuffer.clone(buffer);
+  /// StableBuffer.toArray(clone); // => [1]
   /// ```
   ///
   /// Runtime: O(size)
@@ -751,10 +751,10 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
   ///
-  /// Buffer.max(buffer, Nat.compare); // => ?2
+  /// StableBuffer.max(buffer, Nat.compare); // => ?2
   /// ```
   ///
   /// Runtime: O(size)
@@ -787,10 +787,10 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
   ///
-  /// Buffer.min(buffer, Nat.compare); // => ?1
+  /// StableBuffer.min(buffer, Nat.compare); // => ?1
   /// ```
   ///
   /// Runtime: O(size)
@@ -826,15 +826,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// buffer1.add(1);
-  /// buffer1.add(2);
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
   ///
-  /// let buffer2 = Buffer.Buffer<Nat>(5);
-  /// buffer2.add(1);
-  /// buffer2.add(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(5);
+  /// StableBuffer.add(buffer2, 1);
+  /// StableBuffer.add(buffer2, 2);
   ///
-  /// Buffer.equal(buffer1, buffer2, Nat.equal); // => true
+  /// StableBuffer.equal(buffer1, buffer2, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(size)
@@ -868,15 +868,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// buffer1.add(1);
-  /// buffer1.add(2);
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
   ///
-  /// let buffer2 = Buffer.Buffer<Nat>(3);
-  /// buffer2.add(3);
-  /// buffer2.add(4);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(buffer2, 3);
+  /// StableBuffer.add(buffer2, 4);
   ///
-  /// Buffer.compare<Nat>(buffer1, buffer2, Nat.compare); // => #less
+  /// StableBuffer.compare<Nat>(buffer1, buffer2, Nat.compare); // => #less
   /// ```
   ///
   /// Runtime: O(size)
@@ -919,12 +919,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// Buffer.toText(buffer, Nat.toText); // => "[1, 2, 3, 4]"
+  /// StableBuffer.toText(buffer, Nat.toText); // => "[1, 2, 3, 4]"
   /// ```
   ///
   /// Runtime: O(size)
@@ -956,12 +956,12 @@ module {
   /// ```motoko include=initialize
   /// import Hash "mo:base/Hash";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(1000);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 1000);
   ///
-  /// Buffer.hash<Nat>(buffer, Hash.hash); // => 2_872_640_342
+  /// StableBuffer.hash<Nat>(buffer, Hash.hash); // => 2_872_640_342
   /// ```
   ///
   /// Runtime: O(size)
@@ -989,12 +989,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// Buffer.indexOf<Nat>(3, buffer, Nat.equal); // => ?2
+  /// StableBuffer.indexOf<Nat>(3, buffer, Nat.equal); // => ?2
   /// ```
   ///
   /// Runtime: O(size)
@@ -1022,14 +1022,14 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(2);
-  /// buffer.add(2);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 2);
   ///
-  /// Buffer.lastIndexOf<Nat>(2, buffer, Nat.equal); // => ?5
+  /// StableBuffer.lastIndexOf<Nat>(2, buffer, Nat.equal); // => ?5
   /// ```
   ///
   /// Runtime: O(size)
@@ -1059,19 +1059,19 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
-  /// let sub = Buffer.Buffer<Nat>(2);
-  /// sub.add(4);
-  /// sub.add(5);
-  /// sub.add(6);
+  /// let sub = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(sub, 4);
+  /// StableBuffer.add(sub, 5);
+  /// StableBuffer.add(sub, 6);
   ///
-  /// Buffer.indexOfBuffer<Nat>(sub, buffer, Nat.equal); // => ?3
+  /// StableBuffer.indexOfBuffer<Nat>(sub, buffer, Nat.equal); // => ?3
   /// ```
   ///
   /// Runtime: O(size of buffer + size of subBuffer)
@@ -1136,12 +1136,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
-  /// Buffer.binarySearch<Nat>(5, buffer, Nat.compare); // => ?2
+  /// StableBuffer.binarySearch<Nat>(5, buffer, Nat.compare); // => ?2
   /// ```
   ///
   /// Runtime: O(log(size))
@@ -1180,15 +1180,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
-  /// let sub = Buffer.subBuffer(buffer, 3, 2);
-  /// Buffer.toText(sub, Nat.toText); // => [4, 5]
+  /// let sub = StableBuffer.subBuffer(buffer, 3, 2);
+  /// StableBuffer.toText(sub, Nat.toText); // => [4, 5]
   /// ```
   ///
   /// Runtime: O(length)
@@ -1220,17 +1220,17 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
-  /// let sub = Buffer.Buffer<Nat>(2);
-  /// sub.add(2);
-  /// sub.add(3);
-  /// Buffer.isSubBufferOf(sub, buffer, Nat.equal); // => true
+  /// let sub = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(sub, 2);
+  /// StableBuffer.add(sub, 3);
+  /// StableBuffer.isSubBufferOf(sub, buffer, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(size of subBuffer + size of buffer)
@@ -1253,15 +1253,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let sub = Buffer.Buffer<Nat>(2);
-  /// sub.add(2);
-  /// sub.add(3);
-  /// Buffer.isStrictSubBufferOf(sub, buffer, Nat.equal); // => true
+  /// let sub = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(sub, 2);
+  /// StableBuffer.add(sub, 3);
+  /// StableBuffer.isStrictSubBufferOf(sub, buffer, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(size of subBuffer + size of buffer)
@@ -1289,13 +1289,13 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let pre = Buffer.prefix(buffer, 3); // => [1, 2, 3]
-  /// Buffer.toText(pre, Nat.toText);
+  /// let pre = StableBuffer.prefix(buffer, 3); // => [1, 2, 3]
+  /// StableBuffer.toText(pre, Nat.toText);
   /// ```
   ///
   /// Runtime: O(length)
@@ -1325,15 +1325,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let pre = Buffer.Buffer<Nat>(2);
-  /// pre.add(1);
-  /// pre.add(2);
-  /// Buffer.isPrefixOf(pre, buffer, Nat.equal); // => true
+  /// let pre = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(pre, 1);
+  /// StableBuffer.add(pre, 2);
+  /// StableBuffer.isPrefixOf(pre, buffer, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(size of prefix)
@@ -1366,16 +1366,16 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let pre = Buffer.Buffer<Nat>(3);
-  /// pre.add(1);
-  /// pre.add(2);
-  /// pre.add(3);
-  /// Buffer.isStrictPrefixOf(pre, buffer, Nat.equal); // => true
+  /// let pre = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(pre, 1);
+  /// StableBuffer.add(pre, 2);
+  /// StableBuffer.add(pre, 3);
+  /// StableBuffer.isStrictPrefixOf(pre, buffer, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(size of prefix)
@@ -1397,13 +1397,13 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let suf = Buffer.suffix(buffer, 3); // => [2, 3, 4]
-  /// Buffer.toText(suf, Nat.toText);
+  /// let suf = StableBuffer.suffix(buffer, 3); // => [2, 3, 4]
+  /// StableBuffer.toText(suf, Nat.toText);
   /// ```
   ///
   /// Runtime: O(length)
@@ -1435,16 +1435,16 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let suf = Buffer.Buffer<Nat>(3);
-  /// suf.add(2);
-  /// suf.add(3);
-  /// suf.add(4);
-  /// Buffer.isSuffixOf(suf, buffer, Nat.equal); // => true
+  /// let suf = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(suf, 2);
+  /// StableBuffer.add(suf, 3);
+  /// StableBuffer.add(suf, 4);
+  /// StableBuffer.isSuffixOf(suf, buffer, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(length of suffix)
@@ -1479,16 +1479,16 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// let suf = Buffer.Buffer<Nat>(3);
-  /// suf.add(2);
-  /// suf.add(3);
-  /// suf.add(4);
-  /// Buffer.isStrictSuffixOf(suf, buffer, Nat.equal); // => true
+  /// let suf = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(suf, 2);
+  /// StableBuffer.add(suf, 3);
+  /// StableBuffer.add(suf, 4);
+  /// StableBuffer.isStrictSuffixOf(suf, buffer, Nat.equal); // => true
   /// ```
   ///
   /// Runtime: O(length of suffix)
@@ -1508,11 +1508,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// Buffer.forAll<Nat>(buffer, func x { x > 1 }); // => true
+  /// StableBuffer.forAll<Nat>(buffer, func x { x > 1 }); // => true
   /// ```
   ///
   /// Runtime: O(size)
@@ -1535,11 +1535,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// Buffer.forSome<Nat>(buffer, func x { x > 3 }); // => true
+  /// StableBuffer.forSome<Nat>(buffer, func x { x > 3 }); // => true
   /// ```
   ///
   /// Runtime: O(size)
@@ -1562,11 +1562,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
   ///
-  /// Buffer.forNone<Nat>(buffer, func x { x == 0 }); // => true
+  /// StableBuffer.forNone<Nat>(buffer, func x { x == 0 }); // => true
   /// ```
   ///
   /// Runtime: O(size)
@@ -1589,11 +1589,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// Buffer.toArray<Nat>(buffer); // => [1, 2, 3]
+  /// StableBuffer.toArray<Nat>(buffer); // => [1, 2, 3]
   ///
   /// ```
   ///
@@ -1612,11 +1612,11 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// Buffer.toVarArray<Nat>(buffer); // => [1, 2, 3]
+  /// StableBuffer.toVarArray<Nat>(buffer); // => [1, 2, 3]
   /// ```
   ///
   /// Runtime: O(size)
@@ -1643,8 +1643,8 @@ module {
   ///
   /// let array = [2, 3];
   ///
-  /// let buf = Buffer.fromArray<Nat>(array); // => [2, 3]
-  /// Buffer.toText(buf, Nat.toText);
+  /// let buf = StableBuffer.fromArray<Nat>(array); // => [2, 3]
+  /// StableBuffer.toText(buf, Nat.toText);
   /// ```
   ///
   /// Runtime: O(size)
@@ -1675,8 +1675,8 @@ module {
   ///
   /// let array = [var 1, 2, 3];
   ///
-  /// let buf = Buffer.fromVarArray<Nat>(array); // => [1, 2, 3]
-  /// Buffer.toText(buf, Nat.toText);
+  /// let buf = StableBuffer.fromVarArray<Nat>(array); // => [1, 2, 3]
+  /// StableBuffer.toText(buf, Nat.toText);
   /// ```
   ///
   /// Runtime: O(size)
@@ -1701,8 +1701,8 @@ module {
   /// let array = [1, 1, 1];
   /// let iter = array.vals();
   ///
-  /// let buf = Buffer.fromIter<Nat>(iter); // => [1, 1, 1]
-  /// Buffer.toText(buf, Nat.toText);
+  /// let buf = StableBuffer.fromIter<Nat>(iter); // => [1, 1, 1]
+  /// StableBuffer.toText(buf, Nat.toText);
   /// ```
   ///
   /// Runtime: O(size)
@@ -1723,13 +1723,13 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// let buffer = Buffer.Buffer<Nat>(10);
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// let buffer = StableBuffer.initPresized<Nat>(10);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// Buffer.trimToSize<Nat>(buffer);
-  /// buffer.capacity(); // => 3
+  /// StableBuffer.trimToSize<Nat>(buffer);
+  /// StableBuffer.capacity(buffer); // => 3
   /// ```
   ///
   /// Runtime: O(size)
@@ -1748,12 +1748,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let newBuf = Buffer.map<Nat, Nat>(buffer, func (x) { x + 1 });
-  /// Buffer.toText(newBuf, Nat.toText); // => [2, 3, 4]
+  /// let newBuf = StableBuffer.map<Nat, Nat>(buffer, func (x) { x + 1 });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [2, 3, 4]
   /// ```
   ///
   /// Runtime: O(size)
@@ -1778,11 +1778,11 @@ module {
   /// import Nat "mo:base/Nat";
   /// import Debug "mo:base/Debug";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// Buffer.iterate<Nat>(buffer, func (x) {
+  /// StableBuffer.iterate<Nat>(buffer, func (x) {
   ///   Debug.print(Nat.toText(x)); // prints each element in buffer
   /// });
   /// ```
@@ -1804,12 +1804,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let newBuf = Buffer.mapEntries<Nat, Nat>(buffer, func (x, i) { x + i + 1 });
-  /// Buffer.toText(newBuf, Nat.toText); // => [2, 4, 6]
+  /// let newBuf = StableBuffer.mapEntries<Nat, Nat>(buffer, func (x, i) { x + i + 1 });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [2, 4, 6]
   /// ```
   ///
   /// Runtime: O(size)
@@ -1837,18 +1837,18 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let newBuf = Buffer.mapFilter<Nat, Nat>(buffer, func (x) {
+  /// let newBuf = StableBuffer.mapFilter<Nat, Nat>(buffer, func (x) {
   ///   if (x > 1) {
   ///     ?(x * 2);
   ///   } else {
   ///     null;
   ///   }
   /// });
-  /// Buffer.toText(newBuf, Nat.toText); // => [4, 6]
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [4, 6]
   /// ```
   ///
   /// Runtime: O(size)
@@ -1879,11 +1879,11 @@ module {
   /// ```motoko include=initialize
   /// import Result "mo:base/Result";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let result = Buffer.mapResult<Nat, Nat, Text>(buffer, func (k) {
+  /// let result = StableBuffer.mapResult<Nat, Nat, Text>(buffer, func (k) {
   ///   if (k > 0) {
   ///     #ok(k);
   ///   } else {
@@ -1891,7 +1891,7 @@ module {
   ///   }
   /// });
   ///
-  /// Result.mapOk<Buffer.Buffer<Nat>, [Nat], Text>(result, func buffer = Buffer.toArray(buffer)) // => #ok([1, 2, 3])
+  /// Result.mapOk<StableBuffer.StableBuffer<Nat>, [Nat], Text>(result, func buffer = StableBuffer.toArray(buffer)) // => #ok([1, 2, 3])
   /// ```
   ///
   /// Runtime: O(size)
@@ -1924,12 +1924,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let chain = Buffer.chain<Nat, Nat>(buffer, func (x) {
-  ///   let b = Buffer.Buffer<Nat>(2);
+  /// let chain = StableBuffer.chain<Nat, Nat>(buffer, func (x) {
+  ///   let b = StableBuffer.initPresized<Nat>(2);
   ///   b.add(x);
   ///   b.add(x * 2);
   ///   return b;
@@ -2254,15 +2254,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
-  /// let partitions = Buffer.partition<Nat>(buffer, func (x) { x % 2 == 0 });
-  /// (Buffer.toArray(partitions.0), Buffer.toArray(partitions.1)) // => ([2, 4, 6], [1, 3, 5])
+  /// let partitions = StableBuffer.partition<Nat>(buffer, func (x) { x % 2 == 0 });
+  /// (StableBuffer.toArray(partitions.0), StableBuffer.toArray(partitions.1)) // => ([2, 4, 6], [1, 3, 5])
   /// ```
   ///
   /// Runtime: O(size)
@@ -2295,12 +2295,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
   /// let split = Buffer.split<Nat>(buffer, 3);
   /// (Buffer.toArray(split.0), Buffer.toArray(split.1)) // => ([1, 2, 3], [4, 5, 6])
@@ -2342,15 +2342,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(6);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
   ///
-  /// let chunks = Buffer.chunk<Nat>(buffer, 3);
-  /// Buffer.toText<Buffer.Buffer<Nat>>(chunks, func buf = Buffer.toText(buf, Nat.toText)); // => [[1, 2, 3], [4, 5, 6]]
+  /// let chunks = StableBuffer.chunk<Nat>(buffer, 3);
+  /// StableBuffer.toText<StableBuffer.StableBuffer<Nat>>(chunks, func buf = StableBuffer.toText(buf, Nat.toText)); // => [[1, 2, 3], [4, 5, 6]]
   /// ```
   ///
   /// Runtime: O(number of elements in buffer)
@@ -2388,15 +2388,15 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(2);
-  /// buffer.add(4);
-  /// buffer.add(5);
-  /// buffer.add(5);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 5);
   ///
-  /// let grouped = Buffer.groupBy<Nat>(buffer, func (x, y) { x == y });
-  /// Buffer.toText<Buffer.Buffer<Nat>>(grouped, func buf = Buffer.toText(buf, Nat.toText)); // => [[1], [2, 2], [4], [5, 5]]
+  /// let grouped = StableBuffer.groupBy<Nat>(buffer, func (x, y) { x == y });
+  /// StableBuffer.toText<StableBuffer.StableBuffer<Nat>>(grouped, func buf = StableBuffer.toText(buf, Nat.toText)); // => [[1], [2, 2], [4], [5, 5]]
   /// ```
   ///
   /// Runtime: O(size)
@@ -2440,22 +2440,22 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// let buffer = Buffer.Buffer<Buffer.Buffer<Nat>>(1);
+  /// let buffer = StableBuffer.initPresized<StableBuffer.StableBuffer<Nat>>(1);
   ///
-  /// let inner1 = Buffer.Buffer<Nat>(2);
-  /// inner1.add(1);
-  /// inner1.add(2);
+  /// let inner1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(inner1, 1);
+  /// StableBuffer.add(inner1, 2);
   ///
-  /// let inner2 = Buffer.Buffer<Nat>(2);
-  /// inner2.add(3);
-  /// inner2.add(4);
+  /// let inner2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(inner2, 3);
+  /// StableBuffer.add(inner2, 4);
   ///
-  /// buffer.add(inner1);
-  /// buffer.add(inner2);
+  /// StableBuffer.add(buffer, inner1);
+  /// StableBuffer.add(buffer, inner2);
   /// // buffer = [[1, 2], [3, 4]]
   ///
-  /// let flat = Buffer.flatten<Nat>(buffer);
-  /// Buffer.toText<Nat>(flat, Nat.toText); // => [1, 2, 3, 4]
+  /// let flat = StableBuffer.flatten<Nat>(buffer);
+  /// StableBuffer.toText<Nat>(flat, Nat.toText); // => [1, 2, 3, 4]
   /// ```
   ///
   /// Runtime: O(number of elements in buffer)
@@ -2491,17 +2491,17 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// buffer1.add(1);
-  /// buffer1.add(2);
-  /// buffer1.add(3);
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
+  /// StableBuffer.add(buffer1, 3);
   ///
-  /// let buffer2 = Buffer.Buffer<Nat>(2);
-  /// buffer2.add(4);
-  /// buffer2.add(5);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer2, 4);
+  /// StableBuffer.add(buffer2, 5);
   ///
-  /// let zipped = Buffer.zip(buffer1, buffer2);
-  /// Buffer.toArray(zipped); // => [(1, 4), (2, 5)]
+  /// let zipped = StableBuffer.zip(buffer1, buffer2);
+  /// StableBuffer.toArray(zipped); // => [(1, 4), (2, 5)]
   /// ```
   ///
   /// Runtime: O(min(size1, size2))
@@ -2520,18 +2520,18 @@ module {
   /// Example:
   /// ```motoko include=initialize
   ///
-  /// let buffer1 = Buffer.Buffer<Nat>(2);
-  /// buffer1.add(1);
-  /// buffer1.add(2);
-  /// buffer1.add(3);
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
+  /// StableBuffer.add(buffer1, 3);
   ///
-  /// let buffer2 = Buffer.Buffer<Nat>(2);
-  /// buffer2.add(4);
-  /// buffer2.add(5);
-  /// buffer2.add(6);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer2, 4);
+  /// StableBuffer.add(buffer2, 5);
+  /// StableBuffer.add(buffer2, 6);
   ///
-  /// let zipped = Buffer.zipWith<Nat, Nat, Nat>(buffer1, buffer2, func (x, y) { x + y });
-  /// Buffer.toArray(zipped) // => [5, 7, 9]
+  /// let zipped = StableBuffer.zipWith<Nat, Nat, Nat>(buffer1, buffer2, func (x, y) { x + y });
+  /// StableBuffer.toArray(zipped) // => [5, 7, 9]
   /// ```
   ///
   /// Runtime: O(min(size1, size2))
@@ -2560,12 +2560,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let newBuf = Buffer.takeWhile<Nat>(buffer, func (x) { x < 3 });
-  /// Buffer.toText(newBuf, Nat.toText); // => [1, 2]
+  /// let newBuf = StableBuffer.takeWhile<Nat>(buffer, func (x) { x < 3 });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [1, 2]
   /// ```
   ///
   /// Runtime: O(size)
@@ -2593,12 +2593,12 @@ module {
   /// ```motoko include=initialize
   /// import Nat "mo:base/Nat";
   ///
-  /// buffer.add(1);
-  /// buffer.add(2);
-  /// buffer.add(3);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
   ///
-  /// let newBuf = Buffer.dropWhile<Nat>(buffer, func x { x < 3 }); // => [3]
-  /// Buffer.toText(newBuf, Nat.toText);
+  /// let newBuf = StableBuffer.dropWhile<Nat>(buffer, func x { x < 3 }); // => [3]
+  /// StableBuffer.toText(newBuf, Nat.toText);
   /// ```
   ///
   /// Runtime: O(size)
