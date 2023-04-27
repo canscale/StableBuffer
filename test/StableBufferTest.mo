@@ -121,7 +121,11 @@ do {
   B.add(e, 2);
   assert (B.toArray(e).size() == 3);
   assert (B.toVarArray(e).size() == 3);
-  assert (e.elems.size() == 4);
+  assert (e.elems.size() == 3);
+  B.add(e, 3);
+  assert (B.toArray(e).size() == 4);
+  assert (B.toVarArray(e).size() == 4);
+  assert (e.elems.size() == 5);
 };
 
 
@@ -199,14 +203,14 @@ let clearSuite = suite("clear", [
   test("clears a buffer with elements",
     do {
       B.clear(buffer);
-      B.capacity(buffer) == 0 and B.size(buffer) == 0;
+      B.capacity(buffer) == 8 and B.size(buffer) == 0;
     },
     M.equals(T.bool(true))
   ),
   test("clearing an empty buffer makes no difference",
     do {
       B.clear(B.initPresized<Nat>(3));
-      B.capacity(buffer) == 0 and B.size(buffer) == 0;
+      B.capacity(buffer) == 8 and B.size(buffer) == 0;
     },
     M.equals(T.bool(true))
   ),
@@ -403,7 +407,7 @@ let removeLastSuite = suite("removeLast", [
     test(
       "capacity",
       B.capacity(buffer),
-      M.equals(T.nat(3))
+      M.equals(T.nat(2))
     ),
     test(
       "elements",
