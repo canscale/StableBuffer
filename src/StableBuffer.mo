@@ -93,7 +93,7 @@ module {
   /// Amortized Space: O(1), Worst Case Space: O(size)
   public func remove<X>(buffer : StableBuffer<X>, index : Nat) : X {
     if (index >= buffer.count) {
-      Prim.trap "Buffer index out of bounds in remove"
+      Prim.trap "Buffer index out of bounds in remove";
     };
 
     let element = get(buffer, index);
@@ -107,28 +107,28 @@ module {
       label l while (i < buffer.count) {
         if (i == index) {
           i += 1;
-          continue l
+          continue l;
         };
 
         elements2[j] := buffer.elems[i];
         i += 1;
-        j += 1
+        j += 1;
       };
       buffer.elems := elements2;
-    }
+    };
     // just shift over elements
     else {
       var i = index;
       while (i < (buffer.count - 1 : Nat)) {
         buffer.elems[i] := buffer.elems[i + 1];
-        i += 1
+        i += 1;
       };
       buffer.elems[buffer.count - 1] := null;
     };
 
     buffer.count -= 1;
 
-    element; 
+    element;
   };
 
   /// Removes and returns the last item in the buffer or `null` if
@@ -149,7 +149,7 @@ module {
     if (buffer.count == 0) {
       return null;
     };
-    
+
     buffer.count -= 1;
     let lastElement = buffer.elems[buffer.count];
     buffer.elems[buffer.count] := null;
@@ -157,7 +157,7 @@ module {
     if (buffer.count < buffer.elems.size() / DECREASE_THRESHOLD) {
       // FIXME should this new capacity be a function of _size
       // instead of the current capacity? E.g. _size * INCREASE_FACTOR
-      reserve(buffer, buffer.elems.size() / DECREASE_FACTOR)
+      reserve(buffer, buffer.elems.size() / DECREASE_FACTOR);
     };
 
     lastElement;
@@ -191,7 +191,7 @@ module {
   /// Runtime: O(1)
   ///
   /// Space: O(1)
-  public func capacity<X>(buffer: StableBuffer<X>) : Nat = buffer.elems.size();
+  public func capacity<X>(buffer : StableBuffer<X>) : Nat = buffer.elems.size();
 
   /// Changes the capacity to `capacity`. Traps if `capacity` < `Buffer.size(buffer)`.
   ///
@@ -206,9 +206,9 @@ module {
   /// Runtime: O(capacity)
   ///
   /// Space: O(capacity)
-  public func reserve<X>(buffer: StableBuffer<X>, capacity : Nat) {
+  public func reserve<X>(buffer : StableBuffer<X>, capacity : Nat) {
     if (capacity < buffer.count) {
-      Prim.trap "capacity must be >= size in reserve"
+      Prim.trap "capacity must be >= size in reserve";
     };
 
     let elements2 = Prim.Array_init<?X>(capacity, null);
@@ -216,9 +216,9 @@ module {
     var i = 0;
     while (i < buffer.count) {
       elements2[i] := buffer.elems[i];
-      i += 1
+      i += 1;
     };
-    buffer.elems:= elements2
+    buffer.elems := elements2;
   };
 
   /// Resets the buffer.
@@ -322,7 +322,7 @@ module {
   /// Space: O(1)
   public func put<X>(buffer : StableBuffer<X>, index : Nat, element : X) {
     if (index >= buffer.count) {
-      Prim.trap "Buffer index out of bounds in put"
+      Prim.trap "Buffer index out of bounds in put";
     };
     buffer.elems[index] := ?element;
   };
@@ -349,11 +349,11 @@ module {
   public func contains<X>(buffer : StableBuffer<X>, element : X, equal : (X, X) -> Bool) : Bool {
     for (current in vals(buffer)) {
       if (equal(current, element)) {
-        return true
-      }
+        return true;
+      };
     };
 
-    false
+    false;
   };
 
   /// Finds the first index of `element` in `buffer` using equality of elements defined
@@ -381,11 +381,11 @@ module {
     var i = 0;
     while (i < bufferSize) {
       if (equal(get(buffer, i), element)) {
-        return ?i
+        return ?i;
       };
-      i += 1
+      i += 1;
     };
 
-    null
+    null;
   };
 };
