@@ -568,4 +568,536 @@ module {
 
     null;
   };
+
+  /// Removes all elements from the buffer for which the predicate returns false.
+  /// The predicate is given both the index of the element and the element itself.
+  /// This may cause a downsizing of the array.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
+  /// StableBuffer.filterEntries(buffer, func(_, x) = x % 2 == 0); // only keep even elements
+  /// StableBuffer.toArray(buffer) // => [10, 12]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Amortized Space: O(1), Worst Case Space: O(size)
+  public func filterEntries<X>(buffer : StableBuffer<X>, predicate : (Nat, X) -> Bool) {
+    var numRemoved = 0;
+    let keep = Prim.Array_tabulate<Bool>(
+      buffer.count,
+      func i {
+        switch (buffer.elems[i]) {
+          case (?element) {
+            if (predicate(i, element)) {
+              true;
+            } else {
+              numRemoved += 1;
+              false;
+            };
+          };
+          case null {
+            Prim.trap "Malformed buffer in filter()";
+          };
+        };
+      },
+    );
+
+    let capacity = buffer.elems.size();
+
+    if ((buffer.count - numRemoved : Nat) < capacity / DECREASE_THRESHOLD) {
+      let elements2 = Prim.Array_init<?X>(capacity / DECREASE_FACTOR, null);
+
+      var i = 0;
+      var j = 0;
+      while (i < buffer.count) {
+        if (keep[i]) {
+          elements2[j] := buffer.elems[i];
+          i += 1;
+          j += 1;
+        } else {
+          i += 1;
+        };
+      };
+
+      buffer.elems := elements2;
+    } else {
+      var i = 0;
+      var j = 0;
+      while (i < buffer.count) {
+        if (keep[i]) {
+          buffer.elems[j] := buffer.elems[i];
+          i += 1;
+          j += 1;
+        } else {
+          i += 1;
+        };
+      };
+
+      while (j < buffer.count) {
+        buffer.elems[j] := null;
+        j += 1;
+      };
+    };
+
+    buffer.count -= numRemoved;
+  };
+
+  /// Inserts `element` at `index`, shifts all elements to the right of
+  /// `index` over by one index. Traps if `index` is greater than size.
+  ///
+  /// ```motoko include=initialize
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.insert(buffer, 1, 9);
+  /// StableBuffer.toArray(buffer) // => [10, 9, 11]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Amortized Space: O(1), Worst Case Space: O(size)
+  public func insert<X>(buffer : StableBuffer<X>, index : Nat, element : X) {
+    if (index > buffer.count) {
+      Prim.trap "Buffer index out of bounds in insert";
+    };
+    let capacity = buffer.elems.size();
+
+    if (buffer.count + 1 > capacity) {
+      let capacity = buffer.elems.size();
+      let elements2 = Prim.Array_init<?X>(newCapacity capacity, null);
+      var i = 0;
+      while (i < buffer.count + 1) {
+        if (i < index) {
+          elements2[i] := buffer.elems[i];
+        } else if (i == index) {
+          elements2[i] := ?element;
+        } else {
+          elements2[i] := buffer.elems[i - 1];
+        };
+
+        i += 1;
+      };
+      buffer.elems := elements2;
+    } else {
+      var i : Nat = buffer.count;
+      while (i > index) {
+        buffer.elems[i] := buffer.elems[i - 1];
+        i -= 1;
+      };
+      buffer.elems[index] := ?element;
+    };
+
+    buffer.count += 1;
+  };
+
+  /// Inserts `buffer2` at `index`, and shifts all elements to the right of
+  /// `index` over by size2. Traps if `index` is greater than size.
+  ///
+  /// ```motoko include=initialize
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 10);
+  /// StableBuffer.add(buffer1, 11);
+  /// StableBuffer.add(buffer2, 12);
+  /// StableBuffer.add(buffer2, 13);
+  /// StableBuffer.insertBuffer(buffer1, 1, buffer2);
+  /// StableBuffer.toArray(buffer1) // => [10, 12, 13, 11]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Amortized Space: O(1), Worst Case Space: O(size1 + size2)
+  public func insertBuffer<X>(buffer : StableBuffer<X>, index : Nat, buffer2 : StableBuffer<X>) {
+    if (index > buffer.count) {
+      Prim.trap "Buffer index out of bounds in insertBuffer";
+    };
+
+    let size2 = size(buffer2);
+    let capacity = buffer.elems.size();
+
+    // copy elements to new array and shift over in one pass
+    if (buffer.count + size2 > capacity) {
+      let elements2 = Prim.Array_init<?X>(newCapacity(buffer.count + size2), null);
+      var i = 0;
+      for (element in buffer.elems.vals()) {
+        if (i == index) {
+          i += size2;
+        };
+        elements2[i] := element;
+        i += 1;
+      };
+
+      i := 0;
+      while (i < size2) {
+        elements2[i + index] := getOpt(buffer2, i);
+        i += 1;
+      };
+      buffer.elems := elements2;
+    } // just insert
+    else {
+      var i = index;
+      while (i < index + size2) {
+        if (i < buffer.count) {
+          buffer.elems[i + size2] := buffer.elems[i];
+        };
+        buffer.elems[i] := getOpt(buffer2, (i - index));
+
+        i += 1;
+      };
+    };
+
+    buffer.count += size2;
+  };
+
+  /// Sorts the elements in the buffer according to `compare`.
+  /// Sort is deterministic, stable, and in-place.
+  ///
+  /// ```motoko include=initialize
+  ///
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 11);
+  /// StableBuffer.add(buffer, 12);
+  /// StableBuffer.add(buffer, 10);
+  /// StableBuffer.sort(buffer, Nat.compare);
+  /// StableBuffer.toArray(buffer) // => [10, 11, 12]
+  /// ```
+  ///
+  /// Runtime: O(size * log(size))
+  ///
+  /// Space: O(size)
+  public func sort<X>(buffer : StableBuffer<X>, compare : (X, X) -> Order.Order) {
+    // Stable merge sort in a bottom-up iterative style
+    if (buffer.count == 0) {
+      return;
+    };
+    let scratchSpace = Prim.Array_init<?X>(buffer.count, null);
+
+    let sizeDec = buffer.count - 1 : Nat;
+    var currSize = 1; // current size of the subarrays being merged
+    // when the current size == size, the array has been merged into a single sorted array
+    while (currSize < buffer.count) {
+      var leftStart = 0; // selects the current left subarray being merged
+      while (leftStart < sizeDec) {
+        let mid : Nat = if (leftStart + currSize - 1 : Nat < sizeDec) {
+          leftStart + currSize - 1;
+        } else { sizeDec };
+        let rightEnd : Nat = if (leftStart + (2 * currSize) - 1 : Nat < sizeDec) {
+          leftStart + (2 * currSize) - 1;
+        } else { sizeDec };
+
+        // Merge subarrays elements[leftStart...mid] and elements[mid+1...rightEnd]
+        var left = leftStart;
+        var right = mid + 1;
+        var nextSorted = leftStart;
+        while (left < mid + 1 and right < rightEnd + 1) {
+          let leftOpt = buffer.elems[left];
+          let rightOpt = buffer.elems[right];
+          switch (leftOpt, rightOpt) {
+            case (?leftElement, ?rightElement) {
+              switch (compare(leftElement, rightElement)) {
+                case (#less or #equal) {
+                  scratchSpace[nextSorted] := leftOpt;
+                  left += 1;
+                };
+                case (#greater) {
+                  scratchSpace[nextSorted] := rightOpt;
+                  right += 1;
+                };
+              };
+            };
+            case (_, _) {
+              // only sorting non-null items
+              Prim.trap "Malformed buffer in sort";
+            };
+          };
+          nextSorted += 1;
+        };
+        while (left < mid + 1) {
+          scratchSpace[nextSorted] := buffer.elems[left];
+          nextSorted += 1;
+          left += 1;
+        };
+        while (right < rightEnd + 1) {
+          scratchSpace[nextSorted] := buffer.elems[right];
+          nextSorted += 1;
+          right += 1;
+        };
+
+        // Copy over merged elements
+        var i = leftStart;
+        while (i < rightEnd + 1) {
+          buffer.elems[i] := scratchSpace[i];
+          i += 1;
+        };
+
+        leftStart += 2 * currSize;
+      };
+      currSize *= 2;
+    };
+  };
+
+  /// Returns true if and only if the buffer is empty.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 0);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.isEmpty(buffer); // => false
+  /// ```
+  ///
+  /// ```motoko include=initialize
+  /// Buffer.isEmpty(buffer); // => true
+  /// ```
+  ///
+  /// Runtime: O(1)
+  ///
+  /// Space: O(1)
+  public func isEmpty<X>(buffer : StableBuffer<X>) : Bool = size(buffer) == 0;
+
+  /// Finds the greatest element in `buffer` defined by `compare`.
+  /// Returns `null` if `buffer` is empty.
+  ///
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  ///
+  /// StableBuffer.max(buffer, Nat.compare); // => ?2
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `compare` runs in O(1) time and space.
+  public func max<X>(buffer : StableBuffer<X>, compare : (X, X) -> Order) : ?X {
+    if (size(buffer) == 0) {
+      return null;
+    };
+
+    var maxSoFar = get(buffer, 0);
+    for (current in vals(buffer)) {
+      switch (compare(current, maxSoFar)) {
+        case (#greater) {
+          maxSoFar := current;
+        };
+        case _ {};
+      };
+    };
+
+    ?maxSoFar;
+  };
+
+  /// Finds the least element in `buffer` defined by `compare`.
+  /// Returns `null` if `buffer` is empty.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  ///
+  /// StableBuffer.min(buffer, Nat.compare); // => ?1
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `compare` runs in O(1) time and space.
+  public func min<X>(buffer : StableBuffer<X>, compare : (X, X) -> Order) : ?X {
+    if (size(buffer) == 0) {
+      return null;
+    };
+
+    var minSoFar = get(buffer, 0);
+    for (current in vals(buffer)) {
+      switch (compare(current, minSoFar)) {
+        case (#less) {
+          minSoFar := current;
+        };
+        case _ {};
+      };
+    };
+
+    ?minSoFar;
+  };
+
+  /// Defines equality for two buffers, using `equal` to recursively compare elements in the
+  /// buffers. Returns true iff the two buffers are of the same size, and `equal`
+  /// evaluates to true for every pair of elements in the two buffers of the same
+  /// index.
+  ///
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
+  ///
+  /// let buffer2 = StableBuffer.initPresized<Nat>(5);
+  /// StableBuffer.add(buffer2, 1);
+  /// StableBuffer.add(buffer2, 2);
+  ///
+  /// StableBuffer.equal(buffer1, buffer2, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func equal<X>(buffer1 : StableBuffer<X>, buffer2 : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    let size1 = size(buffer1);
+
+    if (size1 != size(buffer2)) {
+      return false;
+    };
+
+    var i = 0;
+    while (i < size1) {
+      if (not equal(get(buffer1, i), get(buffer2, i))) {
+        return false;
+      };
+      i += 1;
+    };
+
+    true;
+  };
+
+  /// Defines comparison for two buffers, using `compare` to recursively compare elements in the
+  /// buffers. Comparison is defined lexicographically.
+  ///
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
+  ///
+  /// let buffer2 = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(buffer2, 3);
+  /// StableBuffer.add(buffer2, 4);
+  ///
+  /// StableBuffer.compare<Nat>(buffer1, buffer2, Nat.compare); // => #less
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `compare` runs in O(1) time and space.
+  public func compare<X>(buffer1 : StableBuffer<X>, buffer2 : StableBuffer<X>, compare : (X, X) -> Order.Order) : Order.Order {
+    let size1 = size(buffer1);
+    let size2 = size(buffer2);
+    let minSize = if (size1 < size2) { size1 } else { size2 };
+
+    var i = 0;
+    while (i < minSize) {
+      switch (compare(get(buffer1, i), get(buffer2, i))) {
+        case (#less) {
+          return #less;
+        };
+        case (#greater) {
+          return #greater;
+        };
+        case _ {};
+      };
+      i += 1;
+    };
+
+    if (size1 < size2) {
+      #less;
+    } else if (size1 == size2) {
+      #equal;
+    } else {
+      #greater;
+    };
+  };
+
+  /// Creates a textual representation of `buffer`, using `toText` to recursively
+  /// convert the elements into Text.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// StableBuffer.toText(buffer, Nat.toText); // => "[1, 2, 3, 4]"
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `toText` runs in O(1) time and space.
+  public func toText<X>(buffer : StableBuffer<X>, toText : X -> Text) : Text {
+    let count : Int = size(buffer);
+    var i = 0;
+    var text = "";
+    while (i < count - 1) {
+      text := text # toText(get(buffer, i)) # ", "; // Text implemented as rope
+      i += 1;
+    };
+    if (count > 0) {
+      // avoid the trailing comma
+      text := text # toText(get(buffer, i));
+    };
+
+    "[" # text # "]";
+  };
+
+  /// Hashes `buffer` using `hash` to hash the underlying elements.
+  /// The deterministic hash function is a function of the elements in the Buffer, as well
+  /// as their ordering.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Hash "mo:base/Hash";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 1000);
+  ///
+  /// StableBuffer.hash<Nat>(buffer, Hash.hash); // => 2_872_640_342
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `hash` runs in O(1) time and space.
+  public func hash<X>(buffer : StableBuffer<X>, hash : X -> Nat32) : Nat32 {
+    let count = size(buffer);
+    var i = 0;
+    var accHash : Nat32 = 0;
+
+    while (i < count) {
+      accHash := Prim.intToNat32Wrap(i) ^ accHash ^ hash(get(buffer, i));
+      i += 1;
+    };
+
+    accHash;
+  };
 };
