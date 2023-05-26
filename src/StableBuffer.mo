@@ -746,7 +746,7 @@ module {
         if (i < buffer.count) {
           buffer.elems[i + size2] := buffer.elems[i];
         };
-        buffer.elems[i] := getOpt(buffer2, (i - index));
+        buffer.elems[i] := getOpt(buffer2, (i - index : Nat));
 
         i += 1;
       };
