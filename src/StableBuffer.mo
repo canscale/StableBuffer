@@ -1670,4 +1670,355 @@ module {
     true;
   };
 
+  /// Creates a buffer containing elements from `array`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let array = [var 1, 2, 3];
+  ///
+  /// let buf = StableBuffer.fromVarArray<Nat>(array); // => [1, 2, 3]
+  /// StableBuffer.toText(buf, Nat.toText);
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  public func fromVarArray<X>(array : [var X]) : StableBuffer<X> {
+    let newBuffer = initPresized<X>(newCapacity(array.size()));
+
+    for (element in array.vals()) {
+      add(newBuffer, element);
+    };
+
+    newBuffer;
+  };
+
+  /// Creates a buffer containing elements from `iter`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let array = [1, 1, 1];
+  /// let iter = array.vals();
+  ///
+  /// let buf = StableBuffer.fromIter<Nat>(iter); // => [1, 1, 1]
+  /// StableBuffer.toText(buf, Nat.toText);
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  public func fromIter<X>(iter : { next : () -> ?X }) : StableBuffer<X> {
+    let newBuffer = initPresized<X>(DEFAULT_CAPACITY); // can't get size from `iter`
+
+    for (element in iter) {
+      add(newBuffer, element);
+    };
+
+    newBuffer;
+  };
+
+  /// Reallocates the array underlying `buffer` such that capacity == size.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// let buffer = StableBuffer.initPresized<Nat>(10);
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// StableBuffer.trimToSize<Nat>(buffer);
+  /// StableBuffer.capacity(buffer); // => 3
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  public func trimToSize<X>(buffer : StableBuffer<X>) {
+    let count = size<X>(buffer);
+    if (count < capacity(buffer)) {
+      reserve(buffer, count);
+    };
+  };
+
+  /// Creates a new buffer by applying `f` to each element in `buffer`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let newBuf = StableBuffer.map<Nat, Nat>(buffer, func (x) { x + 1 });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [2, 3, 4]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `f` runs in O(1) time and space.
+  public func map<X, Y>(buffer : StableBuffer<X>, f : X -> Y) : StableBuffer<Y> {
+    let newBuffer = initPresized<Y>(capacity(buffer));
+
+    for (element in vals(buffer)) {
+      add(newBuffer, f element);
+    };
+
+    newBuffer;
+  };
+
+  /// Applies `f` to each element in `buffer`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  /// import Debug "mo:base/Debug";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// StableBuffer.iterate<Nat>(buffer, func (x) {
+  ///   Debug.print(Nat.toText(x)); // prints each element in buffer
+  /// });
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `f` runs in O(1) time and space.
+  public func iterate<X>(buffer : StableBuffer<X>, f : X -> ()) {
+    for (element in vals(buffer)) {
+      f element;
+    };
+  };
+
+  /// Applies `f` to each element in `buffer` and its index.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let newBuf = StableBuffer.mapEntries<Nat, Nat>(buffer, func (x, i) { x + i + 1 });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [2, 4, 6]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `f` runs in O(1) time and space.
+  public func mapEntries<X, Y>(buffer : StableBuffer<X>, f : (Nat, X) -> Y) : StableBuffer<Y> {
+    let newBuffer = initPresized<Y>(capacity(buffer));
+
+    var i = 0;
+    let count = size(buffer);
+    while (i < count) {
+      add(newBuffer, f(i, get(buffer, i)));
+      i += 1;
+    };
+
+    newBuffer;
+  };
+
+  /// Creates a new buffer by applying `f` to each element in `buffer`,
+  /// and keeping all non-null elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let newBuf = StableBuffer.mapFilter<Nat, Nat>(buffer, func (x) {
+  ///   if (x > 1) {
+  ///     ?(x * 2);
+  ///   } else {
+  ///     null;
+  ///   }
+  /// });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [4, 6]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `f` runs in O(1) time and space.
+  public func mapFilter<X, Y>(buffer : StableBuffer<X>, f : X -> ?Y) : StableBuffer<Y> {
+    let newBuffer = initPresized<Y>(capacity(buffer));
+
+    for (element in vals(buffer)) {
+      switch (f element) {
+        case (?element) {
+          add(newBuffer, element);
+        };
+        case _ {};
+      };
+    };
+
+    newBuffer;
+  };
+
+  /// Creates a new buffer by applying `f` to each element in `buffer`.
+  /// If any invocation of `f` produces an `#err`, returns an `#err`. Otherwise
+  /// Returns an `#ok` containing the new buffer.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Result "mo:base/Result";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let result = StableBuffer.mapResult<Nat, Nat, Text>(buffer, func (k) {
+  ///   if (k > 0) {
+  ///     #ok(k);
+  ///   } else {
+  ///     #err("One or more elements are zero.");
+  ///   }
+  /// });
+  ///
+  /// Result.mapOk<StableBuffer.StableBuffer<Nat>, [Nat], Text>(result, func buffer = StableBuffer.toArray(buffer)) // => #ok([1, 2, 3])
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `f` runs in O(1) time and space.
+  public func mapResult<X, Y, E>(buffer : StableBuffer<X>, f : X -> Result.Result<Y, E>) : Result.Result<StableBuffer<Y>, E> {
+    let newBuffer = initPresized<Y>(capacity(buffer));
+
+    for (element in vals(buffer)) {
+      switch (f element) {
+        case (#ok result) {
+          add(newBuffer, result);
+        };
+        case (#err e) {
+          return #err e;
+        };
+      };
+    };
+
+    #ok newBuffer;
+  };
+
+  /// Creates a new buffer by applying `k` to each element in `buffer`,
+  /// and concatenating the resulting buffers in order. This operation
+  /// is similar to what in other functional languages is known as monadic bind.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let chain = StableBuffer.chain<Nat, Nat>(buffer, func (x) {
+  ///   let b = StableBuffer.initPresized<Nat>(2);
+  ///   b.add(x);
+  ///   b.add(x * 2);
+  ///   return b;
+  /// });
+  /// Buffer.toText(chain, Nat.toText); // => [1, 2, 2, 4, 3, 6]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `k` runs in O(1) time and space.
+  public func chain<X, Y>(buffer : StableBuffer<X>, k : X -> StableBuffer<Y>) : StableBuffer<Y> {
+    let newBuffer = initPresized<Y>(size(buffer) * 4);
+
+    for (element in vals(buffer)) {
+      append(newBuffer, k element);
+    };
+
+    newBuffer;
+  };
+
+  /// Collapses the elements in `buffer` into a single value by starting with `base`
+  /// and progessively combining elements into `base` with `combine`. Iteration runs
+  /// left to right.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  ///
+  /// Buffer.foldLeft<Text, Nat>(buffer, "", func (acc, x) { acc # Nat.toText(x)}); // => "123"
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `combine` runs in O(1) time and space.
+  public func foldLeft<A, X>(buffer : StableBuffer<X>, base : A, combine : (A, X) -> A) : A {
+    var accumulation = base;
+
+    for (element in vals(buffer)) {
+      accumulation := combine(accumulation, element);
+    };
+
+    accumulation;
+  };
+
+  /// Collapses the elements in `buffer` into a single value by starting with `base`
+  /// and progessively combining elements into `base` with `combine`. Iteration runs
+  /// right to left.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  ///
+  /// Buffer.foldRight<Nat, Text>(buffer, "", func (x, acc) { Nat.toText(x) # acc }); // => "123"
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `combine` runs in O(1) time and space.
+  public func foldRight<X, A>(buffer : StableBuffer<X>, base : A, combine : (X, A) -> A) : A {
+    let count = size(buffer);
+    if (count == 0) {
+      return base;
+    };
+    var accumulation = base;
+
+    var i = count;
+    while (i >= 1) {
+      i -= 1; // to avoid Nat underflow, subtract first and stop iteration at 1
+      accumulation := combine(get(buffer, i), accumulation);
+    };
+
+    accumulation;
+  };
+
 };
