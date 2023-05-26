@@ -2053,7 +2053,7 @@ module {
   /// Runtime: O(1)
   ///
   /// Space: O(1)
-  public func last<X>(buffer : StableBuffer<X>) : X = get(buffer, size(buffer) - 1);
+  public func last<X>(buffer : StableBuffer<X>) : X = get(buffer, size(buffer) - 1 : Nat);
 
   /// Returns a new buffer with capacity and size 1, containing `element`.
   ///
