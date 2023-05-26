@@ -2021,4 +2021,608 @@ module {
     accumulation;
   };
 
+  /// Returns the first element of `buffer`. Traps if `buffer` is empty.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  ///
+  /// Buffer.first(buffer); // => 1
+  /// ```
+  ///
+  /// Runtime: O(1)
+  ///
+  /// Space: O(1)
+  public func first<X>(buffer : StableBuffer<X>) : X = get(buffer, 0);
+
+  /// Returns the last element of `buffer`. Traps if `buffer` is empty.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  ///
+  /// Buffer.last(buffer); // => 3
+  /// ```
+  ///
+  /// Runtime: O(1)
+  ///
+  /// Space: O(1)
+  public func last<X>(buffer : StableBuffer<X>) : X = get(buffer, size(buffer) - 1);
+
+  /// Returns a new buffer with capacity and size 1, containing `element`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let buffer = Buffer.make<Nat>(1);
+  /// Buffer.toText(buffer, Nat.toText); // => [1]
+  /// ```
+  ///
+  /// Runtime: O(1)
+  ///
+  /// Space: O(1)
+  public func make<X>(element : X) : StableBuffer<X> {
+    let newBuffer = initPresized<X>(1);
+    add(newBuffer, element);
+    newBuffer;
+  };
+
+  /// Reverses the order of elements in `buffer`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  ///
+  /// Buffer.reverse(buffer);
+  /// Buffer.toText(buffer, Nat.toText); // => [3, 2, 1]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  public func reverse<X>(buffer : StableBuffer<X>) {
+    let count = size(buffer);
+    if (count == 0) {
+      return;
+    };
+
+    var i = 0;
+    var j = count - 1 : Nat;
+    var temp = get(buffer, 0);
+    while (i < count / 2) {
+      temp := get(buffer, j);
+      put(buffer, j, get(buffer, i));
+      put(buffer, i, temp);
+      i += 1;
+      j -= 1;
+    };
+  };
+
+  /// Merges two sorted buffers into a single sorted buffer, using `compare` to define
+  /// the ordering. The final ordering is stable. Behavior is undefined if either
+  /// `buffer1` or `buffer2` is not sorted.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let buffer1 = Buffer.Buffer<Nat>(2);
+  /// buffer1.add(1);
+  /// buffer1.add(2);
+  /// buffer1.add(4);
+  ///
+  /// let buffer2 = Buffer.Buffer<Nat>(2);
+  /// buffer2.add(2);
+  /// buffer2.add(4);
+  /// buffer2.add(6);
+  ///
+  /// let merged = Buffer.merge<Nat>(buffer1, buffer2, Nat.compare);
+  /// Buffer.toText(merged, Nat.toText); // => [1, 2, 2, 4, 4, 6]
+  /// ```
+  ///
+  /// Runtime: O(size1 + size2)
+  ///
+  /// Space: O(size1 + size2)
+  ///
+  /// *Runtime and space assumes that `compare` runs in O(1) time and space.
+  public func merge<X>(buffer1 : StableBuffer<X>, buffer2 : StableBuffer<X>, compare : (X, X) -> Order) : StableBuffer<X> {
+    let size1 = size(buffer1);
+    let size2 = size(buffer2);
+
+    let newBuffer = initPresized<X>(newCapacity(size1 + size2));
+
+    var pointer1 = 0;
+    var pointer2 = 0;
+
+    while (pointer1 < size1 and pointer2 < size2) {
+      let current1 = get(buffer1, pointer1);
+      let current2 = get(buffer2, pointer2);
+
+      switch (compare(current1, current2)) {
+        case (#less) {
+          add(newBuffer, current1);
+          pointer1 += 1;
+        };
+        case _ {
+          add(newBuffer, current2);
+          pointer2 += 1;
+        };
+      };
+    };
+
+    while (pointer1 < size1) {
+      add(newBuffer, get(buffer1, pointer1));
+      pointer1 += 1;
+    };
+
+    while (pointer2 < size2) {
+      add(newBuffer, get(buffer2, pointer2));
+      pointer2 += 1;
+    };
+
+    newBuffer;
+  };
+
+  /// Eliminates all duplicate elements in `buffer` as defined by `compare`.
+  /// Elimination is stable with respect to the original ordering of the elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  /// buffer.add(1);
+  /// buffer.add(2);
+  /// buffer.add(3);
+  ///
+  /// Buffer.removeDuplicates<Nat>(buffer, Nat.compare);
+  /// Buffer.toText(buffer, Nat.toText); // => [1, 2, 3]
+  /// ```
+  ///
+  /// Runtime: O(size * log(size))
+  ///
+  /// Space: O(size)
+  public func removeDuplicates<X>(buffer : StableBuffer<X>, compare : (X, X) -> Order) {
+    let count = size(buffer);
+    let indices = Prim.Array_tabulate<(Nat, X)>(count, func i = (i, get(buffer, i)));
+    // Sort based on element, while carrying original index information
+    // This groups together the duplicate elements
+    let sorted = Array.sort<(Nat, X)>(indices, func(pair1, pair2) = compare(pair1.1, pair2.1));
+    let uniques = initPresized<(Nat, X)>(count);
+
+    // Iterate over elements
+    var i = 0;
+    while (i < count) {
+      var j = i;
+      // Iterate over duplicate elements, and find the smallest index among them (for stability)
+      var minIndex = sorted[j];
+      label duplicates while (j < (count - 1 : Nat)) {
+        let pair1 = sorted[j];
+        let pair2 = sorted[j + 1];
+        switch (compare(pair1.1, pair2.1)) {
+          case (#equal) {
+            if (pair2.0 < pair1.0) {
+              minIndex := pair2;
+            };
+            j += 1;
+          };
+          case _ {
+            break duplicates;
+          };
+        };
+      };
+
+      add(uniques, minIndex);
+      i := j + 1;
+    };
+
+    // resort based on original ordering and place back in buffer
+    sort<(Nat, X)>(
+      uniques,
+      func(pair1, pair2) {
+        if (pair1.0 < pair2.0) {
+          #less;
+        } else if (pair1.0 == pair2.0) {
+          #equal;
+        } else {
+          #greater;
+        };
+      },
+    );
+
+    clear(buffer);
+    reserve(buffer, size(uniques));
+    for (element in vals(uniques)) {
+      add(buffer, element.1);
+    };
+  };
+
+  /// Splits `buffer` into a pair of buffers where all elements in the left
+  /// buffer satisfy `predicate` and all elements in the right buffer do not.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// let partitions = StableBuffer.partition<Nat>(buffer, func (x) { x % 2 == 0 });
+  /// (StableBuffer.toArray(partitions.0), StableBuffer.toArray(partitions.1)) // => ([2, 4, 6], [1, 3, 5])
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `predicate` runs in O(1) time and space.
+  public func partition<X>(buffer : StableBuffer<X>, predicate : X -> Bool) : (StableBuffer<X>, StableBuffer<X>) {
+    let count = size(buffer);
+    let trueBuffer = initPresized<X>(count);
+    let falseBuffer = initPresized<X>(count);
+
+    for (element in vals(buffer)) {
+      if (predicate element) {
+        add(trueBuffer, element);
+      } else {
+        add(falseBuffer, element);
+      };
+    };
+
+    (trueBuffer, falseBuffer);
+  };
+
+  /// Splits the buffer into two buffers at `index`, where the left buffer contains
+  /// all elements with indices less than `index`, and the right buffer contains all
+  /// elements with indices greater than or equal to `index`. Traps if `index` is out
+  /// of bounds.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// let split = Buffer.split<Nat>(buffer, 3);
+  /// (Buffer.toArray(split.0), Buffer.toArray(split.1)) // => ([1, 2, 3], [4, 5, 6])
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `compare` runs in O(1) time and space.
+  public func split<X>(buffer : StableBuffer<X>, index : Nat) : (StableBuffer<X>, StableBuffer<X>) {
+    let count = size(buffer);
+
+    if (index < 0 or index > count) {
+      Prim.trap "Index out of bounds in split";
+    };
+
+    let buffer1 = initPresized<X>(newCapacity index);
+    let buffer2 = initPresized<X>(newCapacity(count - index));
+
+    var i = 0;
+    while (i < index) {
+      add(buffer1, get(buffer, i));
+      i += 1;
+    };
+    while (i < count) {
+      add(buffer2, get(buffer, i));
+      i += 1;
+    };
+
+    (buffer1, buffer2);
+  };
+
+  /// Breaks up `buffer` into buffers of size `size`. The last chunk may
+  /// have less than `size` elements if the number of elements is not divisible
+  /// by the chunk size.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// let chunks = StableBuffer.chunk<Nat>(buffer, 3);
+  /// StableBuffer.toText<StableBuffer.StableBuffer<Nat>>(chunks, func buf = StableBuffer.toText(buf, Nat.toText)); // => [[1, 2, 3], [4, 5, 6]]
+  /// ```
+  ///
+  /// Runtime: O(number of elements in buffer)
+  ///
+  /// Space: O(number of elements in buffer)
+  public func chunk<X>(buffer : StableBuffer<X>, count : Nat) : StableBuffer<StableBuffer<X>> {
+    if (count == 0) {
+      Prim.trap "Chunk size must be non-zero in chunk";
+    };
+
+    // ceil(buffer.size() / size)
+    let newBuffer = initPresized<StableBuffer<X>>((size(buffer) + count - 1) / count);
+
+    var newInnerBuffer = initPresized<X>(newCapacity count);
+    var innerSize = 0;
+    for (element in vals(buffer)) {
+      if (innerSize == count) {
+        add(newBuffer, newInnerBuffer);
+        newInnerBuffer := initPresized<X>(newCapacity count);
+        innerSize := 0;
+      };
+      add(newInnerBuffer, element);
+      innerSize += 1;
+    };
+    if (innerSize > 0) {
+      add(newBuffer, newInnerBuffer);
+    };
+
+    newBuffer;
+  };
+
+  /// Groups equal and adjacent elements in the list into sub lists.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 5);
+  ///
+  /// let grouped = StableBuffer.groupBy<Nat>(buffer, func (x, y) { x == y });
+  /// StableBuffer.toText<StableBuffer.StableBuffer<Nat>>(grouped, func buf = StableBuffer.toText(buf, Nat.toText)); // => [[1], [2, 2], [4], [5, 5]]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func groupBy<X>(buffer : StableBuffer<X>, equal : (X, X) -> Bool) : StableBuffer<StableBuffer<X>> {
+    let count = size(buffer);
+    let newBuffer = initPresized<StableBuffer<X>>(count);
+    if (count == 0) {
+      return newBuffer;
+    };
+
+    var i = 0;
+    var baseElement = get(buffer, 0);
+    var newInnerBuffer = initPresized<X>(count);
+    while (i < count) {
+      let element = get(buffer, i);
+
+      if (equal(baseElement, element)) {
+        add(newInnerBuffer, element);
+      } else {
+        add(newBuffer, newInnerBuffer);
+        baseElement := element;
+        newInnerBuffer := initPresized<X>(count - i);
+        add(newInnerBuffer, element);
+      };
+      i += 1;
+    };
+    if (size(newInnerBuffer) > 0) {
+      add(newBuffer, newInnerBuffer);
+    };
+
+    newBuffer;
+  };
+
+  /// Flattens the buffer of buffers into a single buffer.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// let buffer = StableBuffer.initPresized<StableBuffer.StableBuffer<Nat>>(1);
+  ///
+  /// let inner1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(inner1, 1);
+  /// StableBuffer.add(inner1, 2);
+  ///
+  /// let inner2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(inner2, 3);
+  /// StableBuffer.add(inner2, 4);
+  ///
+  /// StableBuffer.add(buffer, inner1);
+  /// StableBuffer.add(buffer, inner2);
+  /// // buffer = [[1, 2], [3, 4]]
+  ///
+  /// let flat = StableBuffer.flatten<Nat>(buffer);
+  /// StableBuffer.toText<Nat>(flat, Nat.toText); // => [1, 2, 3, 4]
+  /// ```
+  ///
+  /// Runtime: O(number of elements in buffer)
+  ///
+  /// Space: O(number of elements in buffer)
+  public func flatten<X>(buffer : StableBuffer<StableBuffer<X>>) : StableBuffer<X> {
+    let count = size(buffer);
+    if (count == 0) {
+      return initPresized<X>(0);
+    };
+
+    let newBuffer = initPresized<X>(
+      if (size(get(buffer, 0)) != 0) {
+        newCapacity(size(get(buffer, 0)) * count);
+      } else {
+        newCapacity(count);
+      }
+    );
+
+    for (innerBuffer in vals(buffer)) {
+      for (innerElement in vals(innerBuffer)) {
+        add(newBuffer, innerElement);
+      };
+    };
+
+    newBuffer;
+  };
+
+  /// Combines the two buffers into a single buffer of pairs, pairing together
+  /// elements with the same index. If one buffer is longer than the other, the
+  /// remaining elements from the longer buffer are not included.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
+  /// StableBuffer.add(buffer1, 3);
+  ///
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer2, 4);
+  /// StableBuffer.add(buffer2, 5);
+  ///
+  /// let zipped = StableBuffer.zip(buffer1, buffer2);
+  /// StableBuffer.toArray(zipped); // => [(1, 4), (2, 5)]
+  /// ```
+  ///
+  /// Runtime: O(min(size1, size2))
+  ///
+  /// Space: O(min(size1, size2))
+  public func zip<X, Y>(buffer1 : StableBuffer<X>, buffer2 : StableBuffer<Y>) : StableBuffer<(X, Y)> {
+    // compiler should pull lamda out as a static function since it is fully closed
+    zipWith<X, Y, (X, Y)>(buffer1, buffer2, func(x, y) = (x, y));
+  };
+
+  /// Combines the two buffers into a single buffer, pairing together
+  /// elements with the same index and combining them using `zip`. If
+  /// one buffer is longer than the other, the remaining elements from
+  /// the longer buffer are not included.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// let buffer1 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer1, 1);
+  /// StableBuffer.add(buffer1, 2);
+  /// StableBuffer.add(buffer1, 3);
+  ///
+  /// let buffer2 = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(buffer2, 4);
+  /// StableBuffer.add(buffer2, 5);
+  /// StableBuffer.add(buffer2, 6);
+  ///
+  /// let zipped = StableBuffer.zipWith<Nat, Nat, Nat>(buffer1, buffer2, func (x, y) { x + y });
+  /// StableBuffer.toArray(zipped) // => [5, 7, 9]
+  /// ```
+  ///
+  /// Runtime: O(min(size1, size2))
+  ///
+  /// Space: O(min(size1, size2))
+  ///
+  /// *Runtime and space assumes that `zip` runs in O(1) time and space.
+  public func zipWith<X, Y, Z>(buffer1 : StableBuffer<X>, buffer2 : StableBuffer<Y>, zip : (X, Y) -> Z) : StableBuffer<Z> {
+    let size1 = size(buffer1);
+    let size2 = size(buffer2);
+    let minSize = if (size1 < size2) { size1 } else { size2 };
+
+    var i = 0;
+    let newBuffer = initPresized<Z>(newCapacity minSize);
+    while (i < minSize) {
+      add(newBuffer, zip(get(buffer1, i), get(buffer2, i)));
+      i += 1;
+    };
+    newBuffer;
+  };
+
+  /// Creates a new buffer taking elements in order from `buffer` until predicate
+  /// returns false.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let newBuf = StableBuffer.takeWhile<Nat>(buffer, func (x) { x < 3 });
+  /// StableBuffer.toText(newBuf, Nat.toText); // => [1, 2]
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `predicate` runs in O(1) time and space.
+  public func takeWhile<X>(buffer : StableBuffer<X>, predicate : X -> Bool) : StableBuffer<X> {
+    let newBuffer = initPresized<X>(size(buffer));
+
+    for (element in vals(buffer)) {
+      if (not predicate element) {
+        return newBuffer;
+      };
+      add(newBuffer, element);
+    };
+
+    newBuffer;
+  };
+
+  /// Creates a new buffer excluding elements in order from `buffer` until predicate
+  /// returns false.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  ///
+  /// let newBuf = StableBuffer.dropWhile<Nat>(buffer, func x { x < 3 }); // => [3]
+  /// StableBuffer.toText(newBuf, Nat.toText);
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `predicate` runs in O(1) time and space.
+  public func dropWhile<X>(buffer : StableBuffer<X>, predicate : X -> Bool) : StableBuffer<X> {
+    let newBuffer = initPresized<X>(buffer.count);
+
+    var i = 0;
+    var take = false;
+    label iter for (element in vals(buffer)) {
+      if (not (take or predicate element)) {
+        take := true;
+      };
+      if (take) {
+        add(newBuffer, element);
+      };
+    };
+    newBuffer;
+  };
+
 };
