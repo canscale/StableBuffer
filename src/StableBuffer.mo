@@ -1100,4 +1100,574 @@ module {
 
     accHash;
   };
+
+  /// Finds the last index of `element` in `buffer` using equality of elements defined
+  /// by `equal`. Returns `null` if `element` is not found.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 2);
+  ///
+  /// StableBuffer.lastIndexOf<Nat>(2, buffer, Nat.equal); // => ?5
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(size)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func lastIndexOf<X>(element : X, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : ?Nat {
+    let count = size(buffer);
+    if (count == 0) {
+      return null;
+    };
+    var i = count;
+    while (i >= 1) {
+      i -= 1;
+      if (equal(get(buffer, i), element)) {
+        return ?i;
+      };
+    };
+
+    null;
+  };
+
+  /// Searches for `subBuffer` in `buffer`, and returns the starting index if it is found.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// let sub = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(sub, 4);
+  /// StableBuffer.add(sub, 5);
+  /// StableBuffer.add(sub, 6);
+  ///
+  /// StableBuffer.indexOfBuffer<Nat>(sub, buffer, Nat.equal); // => ?3
+  /// ```
+  ///
+  /// Runtime: O(size of buffer + size of subBuffer)
+  ///
+  /// Space: O(size of subBuffer)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func indexOfBuffer<X>(subBuffer : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : ?Nat {
+    // Uses the KMP substring search algorithm
+    // Implementation from: https://www.educative.io/answers/what-is-the-knuth-morris-pratt-algorithm
+    let count = size(buffer);
+    let subSize = size(subBuffer);
+    if (subSize > count or subSize == 0) {
+      return null;
+    };
+
+    // precompute lps
+    let lps = Prim.Array_init<Nat>(subSize, 0);
+    var i = 0;
+    var j = 1;
+
+    while (j < subSize) {
+      if (equal(get(subBuffer, i), get(subBuffer, j))) {
+        i += 1;
+        lps[j] := i;
+        j += 1;
+      } else if (i == 0) {
+        lps[j] := 0;
+        j += 1;
+      } else {
+        i := lps[i - 1];
+      };
+    };
+
+    // start search
+    i := 0;
+    j := 0;
+    let subSizeDec = subSize - 1 : Nat; // hoisting loop invariant
+    while (i < subSize and j < count) {
+      if (equal(get(subBuffer, i), get(buffer, j)) and i == subSizeDec) {
+        return ?(j - i);
+      } else if (equal(get(subBuffer, i), get(buffer, j))) {
+        i += 1;
+        j += 1;
+      } else {
+        if (i != 0) {
+          i := lps[i - 1];
+        } else {
+          j += 1;
+        };
+      };
+    };
+
+    null;
+  };
+
+  /// Similar to indexOf, but runs in logarithmic time. Assumes that `buffer` is sorted.
+  /// Behavior is undefined if `buffer` is not sorted. Uses `compare` to
+  /// perform the search. Returns an index of `element` if it is found.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// StableBuffer.binarySearch<Nat>(5, buffer, Nat.compare); // => ?2
+  /// ```
+  ///
+  /// Runtime: O(log(size))
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `compare` runs in O(1) time and space.
+  public func binarySearch<X>(element : X, buffer : StableBuffer<X>, compare : (X, X) -> Order.Order) : ?Nat {
+    var low = 0;
+    var high = size(buffer);
+
+    while (low < high) {
+      let mid = (low + high) / 2;
+      let current = get(buffer, mid);
+      switch (compare(element, current)) {
+        case (#equal) {
+          return ?mid;
+        };
+        case (#less) {
+          high := mid;
+        };
+        case (#greater) {
+          low := mid + 1;
+        };
+      };
+    };
+
+    null;
+  };
+
+  /// Returns the sub-buffer of `buffer` starting at index `start`
+  /// of length `length`. Traps if `start` is out of bounds, or `start + length`
+  /// is greater than the size of `buffer`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// let sub = StableBuffer.subBuffer(buffer, 3, 2);
+  /// StableBuffer.toText(sub, Nat.toText); // => [4, 5]
+  /// ```
+  ///
+  /// Runtime: O(length)
+  ///
+  /// Space: O(length)
+  public func subBuffer<X>(buffer : StableBuffer<X>, start : Nat, length : Nat) : StableBuffer<X> {
+    let count = size(buffer);
+    let end = start + length; // exclusive
+    if (start >= count or end > count) {
+      Prim.trap "Buffer index out of bounds in subBuffer";
+    };
+
+    let newBuffer = initPresized<X>(newCapacity length);
+
+    var i = start;
+    while (i < end) {
+      add(newBuffer, get(buffer, i));
+
+      i += 1;
+    };
+
+    newBuffer;
+  };
+
+  /// Checks if `subBuffer` is a sub-Buffer of `buffer`. Uses `equal` to
+  /// compare elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  /// StableBuffer.add(buffer, 5);
+  /// StableBuffer.add(buffer, 6);
+  ///
+  /// let sub = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(sub, 2);
+  /// StableBuffer.add(sub, 3);
+  /// StableBuffer.isSubBufferOf(sub, buffer, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(size of subBuffer + size of buffer)
+  ///
+  /// Space: O(size of subBuffer)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func isSubBufferOf<X>(subBuffer : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    switch (indexOfBuffer(subBuffer, buffer, equal)) {
+      case null size(subBuffer) == 0;
+      case _ true;
+    };
+  };
+
+  /// Checks if `subBuffer` is a strict subBuffer of `buffer`, i.e. `subBuffer` must be
+  /// strictly contained inside both the first and last indices of `buffer`.
+  /// Uses `equal` to compare elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let sub = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(sub, 2);
+  /// StableBuffer.add(sub, 3);
+  /// StableBuffer.isStrictSubBufferOf(sub, buffer, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(size of subBuffer + size of buffer)
+  ///
+  /// Space: O(size of subBuffer)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func isStrictSubBufferOf<X>(subBuffer : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    let subBufferSize = size(subBuffer);
+
+    switch (indexOfBuffer(subBuffer, buffer, equal)) {
+      case (?index) {
+        index != 0 and index != (size(buffer) - subBufferSize : Nat) // enforce strictness
+      };
+      case null {
+        subBufferSize == 0 and subBufferSize != size(buffer)
+      };
+    };
+  };
+
+  /// Returns the prefix of `buffer` of length `length`. Traps if `length`
+  /// is greater than the size of `buffer`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let pre = StableBuffer.prefix(buffer, 3); // => [1, 2, 3]
+  /// StableBuffer.toText(pre, Nat.toText);
+  /// ```
+  ///
+  /// Runtime: O(length)
+  ///
+  /// Space: O(length)
+  public func prefix<X>(buffer : StableBuffer<X>, length : Nat) : StableBuffer<X> {
+    let count = size(buffer);
+    if (length > count) {
+      Prim.trap "Buffer index out of bounds in prefix";
+    };
+
+    let newBuffer = initPresized<X>(newCapacity length);
+
+    var i = 0;
+    while (i < length) {
+      add(newBuffer, get(buffer, i));
+      i += 1;
+    };
+
+    newBuffer;
+  };
+
+  /// Checks if `prefix` is a prefix of `buffer`. Uses `equal` to
+  /// compare elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let pre = StableBuffer.initPresized<Nat>(2);
+  /// StableBuffer.add(pre, 1);
+  /// StableBuffer.add(pre, 2);
+  /// StableBuffer.isPrefixOf(pre, buffer, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(size of prefix)
+  ///
+  /// Space: O(size of prefix)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func isPrefixOf<X>(prefix : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    let sizePrefix = size(prefix);
+    if (size(buffer) < sizePrefix) {
+      return false;
+    };
+
+    var i = 0;
+    while (i < sizePrefix) {
+      if (not equal(get(buffer, i), get(prefix, i))) {
+        return false;
+      };
+
+      i += 1;
+    };
+
+    return true;
+  };
+
+  /// Checks if `prefix` is a strict prefix of `buffer`. Uses `equal` to
+  /// compare elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let pre = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(pre, 1);
+  /// StableBuffer.add(pre, 2);
+  /// StableBuffer.add(pre, 3);
+  /// StableBuffer.isStrictPrefixOf(pre, buffer, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(size of prefix)
+  ///
+  /// Space: O(size of prefix)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func isStrictPrefixOf<X>(prefix : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    if (size(buffer) <= size(prefix)) {
+      return false;
+    };
+    isPrefixOf(prefix, buffer, equal);
+  };
+
+  /// Returns the suffix of `buffer` of length `length`.
+  /// Traps if `length`is greater than the size of `buffer`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let suf = StableBuffer.suffix(buffer, 3); // => [2, 3, 4]
+  /// StableBuffer.toText(suf, Nat.toText);
+  /// ```
+  ///
+  /// Runtime: O(length)
+  ///
+  /// Space: O(length)
+  public func suffix<X>(buffer : StableBuffer<X>, length : Nat) : StableBuffer<X> {
+    let count = size(buffer);
+
+    if (length > count) {
+      Prim.trap "Buffer index out of bounds in suffix";
+    };
+
+    let newBuffer = initPresized<X>(newCapacity length);
+
+    var i = count - length : Nat;
+    while (i < count) {
+      add(newBuffer, get(buffer, i));
+
+      i += 1;
+    };
+
+    newBuffer;
+  };
+
+  /// Checks if `suffix` is a suffix of `buffer`. Uses `equal` to compare
+  /// elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let suf = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(suf, 2);
+  /// StableBuffer.add(suf, 3);
+  /// StableBuffer.add(suf, 4);
+  /// StableBuffer.isSuffixOf(suf, buffer, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(length of suffix)
+  ///
+  /// Space: O(length of suffix)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func isSuffixOf<X>(suffix : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    let suffixSize = size(suffix);
+    let bufferSize = size(buffer);
+    if (bufferSize < suffixSize) {
+      return false;
+    };
+
+    var i = bufferSize;
+    var j = suffixSize;
+    while (i >= 1 and j >= 1) {
+      i -= 1;
+      j -= 1;
+      if (not equal(get(buffer, i), get(suffix, j))) {
+        return false;
+      };
+    };
+
+    return true;
+  };
+
+  /// Checks if `suffix` is a strict suffix of `buffer`. Uses `equal` to compare
+  /// elements.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  /// import Nat "mo:base/Nat";
+  ///
+  /// StableBuffer.add(buffer, 1);
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// let suf = StableBuffer.initPresized<Nat>(3);
+  /// StableBuffer.add(suf, 2);
+  /// StableBuffer.add(suf, 3);
+  /// StableBuffer.add(suf, 4);
+  /// StableBuffer.isStrictSuffixOf(suf, buffer, Nat.equal); // => true
+  /// ```
+  ///
+  /// Runtime: O(length of suffix)
+  ///
+  /// Space: O(length of suffix)
+  ///
+  /// *Runtime and space assumes that `equal` runs in O(1) time and space.
+  public func isStrictSuffixOf<X>(suffix : StableBuffer<X>, buffer : StableBuffer<X>, equal : (X, X) -> Bool) : Bool {
+    if (size(buffer) <= size(suffix)) {
+      return false;
+    };
+    isSuffixOf(suffix, buffer, equal);
+  };
+
+  /// Returns true iff every element in `buffer` satisfies `predicate`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// StableBuffer.forAll<Nat>(buffer, func x { x > 1 }); // => true
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `predicate` runs in O(1) time and space.
+  public func forAll<X>(buffer : StableBuffer<X>, predicate : X -> Bool) : Bool {
+    for (element in vals(buffer)) {
+      if (not predicate element) {
+        return false;
+      };
+    };
+
+    true;
+  };
+
+  /// Returns true iff some element in `buffer` satisfies `predicate`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// StableBuffer.forSome<Nat>(buffer, func x { x > 3 }); // => true
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `predicate` runs in O(1) time and space.
+  public func forSome<X>(buffer : StableBuffer<X>, predicate : X -> Bool) : Bool {
+    for (element in vals(buffer)) {
+      if (predicate element) {
+        return true;
+      };
+    };
+
+    false;
+  };
+
+  /// Returns true iff no element in `buffer` satisfies `predicate`.
+  ///
+  /// Example:
+  /// ```motoko include=initialize
+  ///
+  /// StableBuffer.add(buffer, 2);
+  /// StableBuffer.add(buffer, 3);
+  /// StableBuffer.add(buffer, 4);
+  ///
+  /// StableBuffer.forNone<Nat>(buffer, func x { x == 0 }); // => true
+  /// ```
+  ///
+  /// Runtime: O(size)
+  ///
+  /// Space: O(1)
+  ///
+  /// *Runtime and space assumes that `predicate` runs in O(1) time and space.
+  public func forNone<X>(buffer : StableBuffer<X>, predicate : X -> Bool) : Bool {
+    for (element in vals(buffer)) {
+      if (predicate element) {
+        return false;
+      };
+    };
+
+    true;
+  };
+
 };
